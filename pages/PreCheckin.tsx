@@ -15,6 +15,8 @@ const PreCheckin: React.FC = () => {
   const [search, setSearch] = useState('');
   const [step, setStep] = useState(1);
   const [generated, setGenerated] = useState<string | null>(null);
+  const [selectedKidId, setSelectedKidId] = useState<string | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -29,7 +31,40 @@ const PreCheckin: React.FC = () => {
       setLoading(false);
     };
     loadData();
+
+    // Check if notifications already granted
+    if (window.Notification && Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+    }
   }, []);
+
+  // Listener para notificações quando uma criança é selecionada
+  useEffect(() => {
+    if (selectedKidId && notificationsEnabled) {
+      const unsub = storageService.subscribeToNotificacoes(selectedKidId, (n) => {
+        if (window.Notification && Notification.permission === 'granted') {
+          new Notification('IEADMS Kids', {
+            body: n.mensagem,
+            icon: 'https://api.dicebear.com/7.x/shapes/svg?seed=kids'
+          });
+          
+          // Vibração no celular se disponível
+          if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200]);
+          }
+        }
+      });
+      return () => unsub();
+    }
+  }, [selectedKidId, notificationsEnabled]);
+
+  const requestNotificationPermission = async () => {
+    if (!window.Notification) return;
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      setNotificationsEnabled(true);
+    }
+  };
 
   const filtered = search.length > 1 
     ? kids.filter(k => (k.nome + ' ' + k.sobrenome).toLowerCase().includes(search.toLowerCase()))
@@ -37,6 +72,12 @@ const PreCheckin: React.FC = () => {
 
   const handleSelect = async (kidId: string) => {
     if (!activeCulto) return;
+    setSelectedKidId(kidId);
+
+    // Solicitar notificação no primeiro clique
+    if (window.Notification && Notification.permission === 'default') {
+      await requestNotificationPermission();
+    }
 
     const existing = preCheckins.find(p => p.idCrianca === kidId && p.idCulto === activeCulto.id && p.status === 'pendente');
     
@@ -125,6 +166,21 @@ const PreCheckin: React.FC = () => {
              </div>
 
              <h2 className="text-2xl font-black text-purple-dark mb-2 uppercase">PRONTO!</h2>
+             
+             {notificationsEnabled ? (
+                <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-2xl mb-6 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                   Alertas de Chamada Ativados
+                </div>
+             ) : (
+                <button 
+                  onClick={requestNotificationPermission}
+                  className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded-2xl mb-6 text-[10px] font-black uppercase tracking-widest w-full animate-bounce"
+                >
+                  🔔 Clique para permitir alertas no celular
+                </button>
+             )}
+
              <p className="text-gray-text font-bold mb-8 text-sm leading-tight px-2">
                 Apresente este código na recepção para confirmar a entrada:
              </p>
@@ -141,8 +197,8 @@ const PreCheckin: React.FC = () => {
                 VOLTAR AO INÍCIO
              </button>
              
-             <p className="mt-6 text-[9px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">
-                Este código expira ao fim deste culto.
+             <p className="mt-6 text-[9px] font-black text-gray-400 uppercase tracking-widest leading-relaxed px-4">
+                Mantenha esta página aberta em segundo plano para receber alertas.
              </p>
           </div>
         )}

@@ -81,6 +81,12 @@ const CultoAtivo: React.FC = () => {
     }, 500);
   };
 
+  const handleSendNotification = async (kidId: string) => {
+    if (!id) return;
+    await storageService.sendNotificacao(kidId, id);
+    alert('Notificação enviada ao celular do responsável!');
+  };
+
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.toUpperCase();
     if (!val.startsWith('KIDS-')) {
@@ -155,6 +161,9 @@ const CultoAtivo: React.FC = () => {
         return; 
     }
     try {
+        // LIMPEZA DAS NOTIFICAÇÕES TEMPORÁRIAS DO CULTO
+        await storageService.clearNotificacoes(id!);
+        
         await storageService.updateCulto(id!, { 
             status: 'encerrado', 
             horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
@@ -173,20 +182,22 @@ const CultoAtivo: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* SEÇÃO OCULTA PARA IMPRESSÃO (ESTILO POST-IT) */}
+      {/* SEÇÃO OCULTA PARA IMPRESSÃO (ESTILO POST-IT 80x80mm) */}
       <div id="print-section" className="hidden flex-col items-center justify-center text-center p-4">
         {labelData && (
-          <>
-            <h1 className="text-3xl font-black mb-1" style={{ fontSize: '24pt' }}>{labelData.kid.nome.toUpperCase()}</h1>
-            <h2 className="text-xl font-bold mb-4" style={{ fontSize: '16pt' }}>{labelData.kid.sobrenome.toUpperCase()}</h2>
-            <div className="w-full border-t-2 border-black my-4"></div>
-            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1">Responsável</p>
-            <p className="text-lg font-black mb-4">{labelData.kid.responsavelNome}</p>
-            <div className="w-full border-t border-black/20 my-2"></div>
-            <p className="text-xs font-bold text-gray-400">
-                {new Date(culto?.data || '').toLocaleDateString('pt-BR')} às {labelData.checkin.horaEntrada}
+          <div className="flex flex-col items-center w-full">
+            <h1 className="font-black leading-tight uppercase" style={{ fontSize: '28pt' }}>{labelData.kid.nome}</h1>
+            <h2 className="font-bold leading-tight uppercase opacity-70" style={{ fontSize: '18pt' }}>{labelData.kid.sobrenome}</h2>
+            <div className="w-full border-t-2 border-black my-6"></div>
+            <div className="text-center">
+                <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Responsável</p>
+                <p className="font-black" style={{ fontSize: '14pt' }}>{labelData.kid.responsavelNome}</p>
+            </div>
+            <div className="w-full border-t border-black/20 my-4"></div>
+            <p className="font-bold text-gray-500" style={{ fontSize: '10pt' }}>
+                Entrada: {new Date(culto?.data || '').toLocaleDateString('pt-BR')} às {labelData.checkin.horaEntrada}
             </p>
-          </>
+          </div>
         )}
       </div>
 
@@ -262,25 +273,33 @@ const CultoAtivo: React.FC = () => {
                 </div>
             </div>
 
-            {/* Nova Seção: Checkouts Realizados */}
             <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100">
-                <h2 className="text-base font-black text-purple-dark mb-4 uppercase flex items-center gap-3">
-                {ICONS.CheckCircle} Checkouts ({finishedCheckins.length})
-                </h2>
-                <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-black text-purple-dark uppercase flex items-center gap-3">
+                        {ICONS.CheckCircle} Checkouts Realizados
+                    </h2>
+                    <span className="bg-gray-light text-gray-400 px-3 py-1 rounded-full text-[10px] font-black">{finishedCheckins.length}</span>
+                </div>
+                <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar">
                     {finishedCheckins.map(check => {
                         const kid = allCriancas.find(k => k.id === check.idCrianca);
                         return (
-                            <div key={check.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                <p className="font-black text-xs text-purple-dark">{kid?.nome} {kid?.sobrenome}</p>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                                    Saiu às {check.horaSaida} com {check.quemRetirou}
-                                </p>
+                            <div key={check.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-white hover:shadow-md transition-all group">
+                                <div className="flex justify-between items-start mb-1">
+                                    <h4 className="font-black text-xs text-purple-dark truncate mr-2">{kid?.nome} {kid?.sobrenome}</h4>
+                                    <span className="text-[9px] font-black text-purple-main bg-purple-main/10 px-2 py-0.5 rounded-full">{check.horaSaida}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-400">
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Retirado por:</span>
+                                    <span className="text-[10px] font-bold text-gray-600 truncate">{check.quemRetirou}</span>
+                                </div>
                             </div>
                         );
                     })}
                     {finishedCheckins.length === 0 && (
-                        <p className="text-center py-6 text-gray-300 font-bold text-[10px] uppercase tracking-widest italic">Nenhuma saída ainda.</p>
+                        <div className="py-10 text-center text-gray-300">
+                            <p className="text-[10px] font-black uppercase tracking-widest italic leading-relaxed">Nenhuma criança<br/>saiu ainda hoje.</p>
+                        </div>
                     )}
                 </div>
             </div>
@@ -297,11 +316,32 @@ const CultoAtivo: React.FC = () => {
                     return (
                     <div key={check.id} className="bg-gray-light p-5 rounded-[1.5rem] flex flex-col justify-between border-2 border-transparent hover:border-purple-main/20 transition-all shadow-sm">
                         <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1 overflow-hidden mr-3">
-                            <h4 className="font-black text-purple-dark text-base truncate leading-tight">{kid?.nome} {kid?.sobrenome}</h4>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Entrada: {check.horaEntrada}</p>
-                        </div>
-                        <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-2.5 bg-white rounded-xl shadow-md hover:bg-purple-main hover:text-white transition-all">{ICONS.QrCode}</button>
+                          <div className="flex-1 overflow-hidden mr-3">
+                              <h4 className="font-black text-purple-dark text-base truncate leading-tight">{kid?.nome} {kid?.sobrenome}</h4>
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Entrada: {check.horaEntrada}</p>
+                          </div>
+                          
+                          {/* AÇÕES DA CRIANÇA NO CULTO */}
+                          <div className="flex flex-col gap-2">
+                            <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-2.5 bg-white rounded-xl shadow-sm hover:bg-purple-main hover:text-white transition-all">
+                              {ICONS.QrCode}
+                            </button>
+                            <button 
+                              onClick={() => handleSendNotification(kid!.id)}
+                              className="text-yellow-600 p-2.5 bg-white rounded-xl shadow-sm hover:bg-yellow-main hover:text-purple-dark transition-all"
+                              title="Notificar Responsável"
+                            >
+                              <div className="animate-pulse">{ICONS.Info}</div>
+                            </button>
+                            <a 
+                              href={`https://wa.me/${kid?.whatsapp.replace(/[^\d]/g, '')}?text=Olá, ${kid?.responsavelNome}. Sua criança ${kid?.nome} está te aguardando no Culto Kids para o checkout.`}
+                              target="_blank"
+                              className="text-white p-2.5 bg-green-500 rounded-xl shadow-sm hover:bg-green-600 transition-all text-center"
+                              title="WhatsApp do Responsável"
+                            >
+                              {ICONS.Phone}
+                            </a>
+                          </div>
                         </div>
                         <button onClick={() => setShowCheckout(check)} className="w-full bg-white text-purple-main border-2 border-purple-main/20 hover:border-purple-main hover:bg-purple-main hover:text-white py-2.5 rounded-xl font-black text-[11px] transition-all uppercase tracking-widest shadow-sm">REALIZAR SAÍDA</button>
                     </div>
@@ -315,7 +355,7 @@ const CultoAtivo: React.FC = () => {
             </div>
         </div>
 
-        {/* Modais omitidos para brevidade mas mantidos do original */}
+        {/* Modal Cadastro Rápido */}
         {isAddingNew && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
             <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-300">
@@ -339,9 +379,10 @@ const CultoAtivo: React.FC = () => {
             </div>
         )}
 
+        {/* Modal Saída */}
         {showCheckout && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
-            <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center animate-in zoom-in duration-300">
+            <div className="bg-white w-full max-sm rounded-[2rem] p-8 shadow-2xl text-center animate-in zoom-in duration-300">
                 <h2 className="text-xl font-black text-purple-dark mb-2 uppercase tracking-tight">Confirmar Saída</h2>
                 <p className="text-sm font-bold text-gray-500 mb-8 px-4">Quem veio buscar {allCriancas.find(k => k.id === showCheckout.idCrianca)?.nome}?</p>
                 <input type="text" placeholder="Nome do responsável..." autoFocus value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} className="w-full bg-gray-light p-5 rounded-2xl font-bold mb-8 outline-none border-2 border-transparent focus:border-purple-main text-sm" />
@@ -353,6 +394,7 @@ const CultoAtivo: React.FC = () => {
             </div>
         )}
 
+        {/* Modal Encerrar */}
         {showEndConfirm && (
             <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-red-900/80 backdrop-blur-md">
             <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl text-center animate-in zoom-in duration-300 border-t-8 border-red-500">

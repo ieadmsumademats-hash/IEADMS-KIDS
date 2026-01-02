@@ -1,6 +1,7 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
-import { Crianca, Culto, CheckIn, PreCheckIn } from '../types';
+import { Crianca, Culto, CheckIn, PreCheckIn, NotificacaoAtiva } from '../types';
 
 const PROJECT_SCHEMA = "kids_ieadms";
 
@@ -14,7 +15,8 @@ const TABLES = {
   CRIANCAS: 'criancas',
   CULTOS: 'cultos',
   CHECKINS: 'checkins',
-  PRECHECKINS: 'pre_checkins'
+  PRECHECKINS: 'pre_checkins',
+  NOTIFICACOES: 'notificacoes_ativas'
 };
 
 const handleError = (error: any, context: string) => {
@@ -192,5 +194,37 @@ export const storageService = {
       const { error } = await supabase.from(TABLES.PRECHECKINS).update(payload).eq('id', id);
       if (error) throw error;
     } catch (e) { handleError(e, 'updatePreCheckin'); throw e; }
+  },
+
+  // MÉTODOS DE NOTIFICAÇÃO TEMPORÁRIA
+  sendNotificacao: async (idCrianca: string, idCulto: string) => {
+    try {
+      const { error } = await supabase.from(TABLES.NOTIFICACOES).insert([{
+        id_crianca: idCrianca,
+        id_culto: idCulto,
+        mensagem: 'Papai/Mamãe sua criança está te aguardando para o Checkout'
+      }]);
+      if (error) throw error;
+    } catch (e) { handleError(e, 'sendNotificacao'); }
+  },
+
+  clearNotificacoes: async (idCulto: string) => {
+    try {
+      const { error } = await supabase.from(TABLES.NOTIFICACOES).delete().eq('id_culto', idCulto);
+      if (error) throw error;
+    } catch (e) { handleError(e, 'clearNotificacoes'); }
+  },
+
+  subscribeToNotificacoes: (idCrianca: string, callback: (n: any) => void) => {
+    const channel = supabase.channel(`notificacao_${idCrianca}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: PROJECT_SCHEMA, 
+        table: TABLES.NOTIFICACOES,
+        filter: `id_crianca=eq.${idCrianca}` 
+      }, (payload) => {
+        callback(payload.new);
+      }).subscribe();
+    return () => { supabase.removeChannel(channel); };
   }
 };

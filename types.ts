@@ -42,3 +42,11 @@ export interface Culto {
   responsaveis: string;
   status: 'ativo' | 'encerrado';
 }
+
+export interface NotificacaoAtiva {
+  id: string;
+  id_crianca: string;
+  id_culto: string;
+  mensagem: string;
+  created_at: string;
+}
