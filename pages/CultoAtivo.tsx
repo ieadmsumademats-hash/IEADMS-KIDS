@@ -136,71 +136,71 @@ const CultoAtivo: React.FC = () => {
     ? allCriancas.filter(k => (k.nome + ' ' + k.sobrenome).toLowerCase().includes(searchTerm.toLowerCase()))
     : [];
 
-  if (loading) return <div className="text-center py-10 text-purple-main font-bold">Carregando...</div>;
+  if (loading) return <div className="text-center py-20 text-purple-main font-bold">Carregando dados...</div>;
 
   return (
-    <div className="space-y-4 pb-10 print:hidden">
-      {/* Header Compacto */}
-      <div className="bg-white p-4 rounded-3xl shadow-lg border-l-8 border-green-500 flex items-center justify-between gap-4 sticky top-0 z-30">
+    <div className="space-y-6 pb-12 print:hidden">
+      {/* Header Intermediário */}
+      <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border-l-[10px] border-green-500 flex items-center justify-between gap-6 sticky top-0 z-30">
         <div>
-          <span className="text-[9px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-2 py-0.5 rounded-full mb-1 inline-block">ATIVO</span>
-          <h1 className="text-lg font-black text-purple-dark uppercase truncate max-w-[200px] md:max-w-none">
+          <span className="text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-3 py-1 rounded-full mb-2 inline-block">ATIVO AGORA</span>
+          <h1 className="text-2xl font-black text-purple-dark uppercase truncate">
             {culto?.tipo === 'Outros' ? culto.tipoManual : culto?.tipo}
           </h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-purple-main px-4 py-2 rounded-xl text-white text-center min-w-[60px]">
-            <span className="text-xl font-black block leading-none">{activeCheckins.length}</span>
-            <span className="text-[8px] font-black uppercase tracking-tighter opacity-80">Presentes</span>
+        <div className="flex items-center gap-4">
+          <div className="bg-purple-main px-6 py-3 rounded-2xl text-white text-center shadow-lg">
+            <span className="text-2xl font-black block leading-none">{activeCheckins.length}</span>
+            <span className="text-[9px] font-black uppercase tracking-widest opacity-80 mt-1">Crianças</span>
           </div>
-          <button onClick={handleEndCulto} className="bg-red-500 text-white font-black px-4 py-2 rounded-xl text-xs flex items-center gap-2">
-            {ICONS.LogOut} <span className="hidden sm:inline uppercase">SAIR</span>
+          <button onClick={handleEndCulto} className="bg-red-500 hover:bg-red-600 text-white font-black px-6 py-3 rounded-2xl text-xs flex items-center gap-3 transition-colors shadow-lg">
+            {ICONS.LogOut} <span className="hidden sm:inline uppercase tracking-widest">ENCERRAR</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-yellow-main p-5 rounded-3xl shadow-md">
-            <h2 className="text-sm font-black text-purple-dark mb-3 uppercase flex items-center gap-2">
-              {ICONS.QrCode} Código
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-yellow-main p-7 rounded-[2rem] shadow-lg">
+            <h2 className="text-base font-black text-purple-dark mb-4 uppercase flex items-center gap-3">
+              {ICONS.QrCode} Confirmar Código
             </h2>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <input 
                 type="text" 
-                placeholder="Ex: KIDS-1234"
+                placeholder="EX: KIDS-1234"
                 value={codeQuery}
                 onChange={(e) => setCodeQuery(e.target.value)}
-                className="flex-1 p-3 rounded-xl font-black text-lg tracking-widest uppercase outline-none"
+                className="flex-1 p-4 rounded-xl font-black text-xl tracking-widest uppercase outline-none focus:ring-4 focus:ring-purple-main/20"
               />
-              <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-4 rounded-xl font-black text-sm">OK</button>
+              <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-6 rounded-xl font-black text-sm hover:bg-purple-main transition-colors uppercase">OK</button>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-black text-purple-dark uppercase flex items-center gap-2">
-                {ICONS.Search} Busca
+          <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-black text-purple-dark uppercase flex items-center gap-3">
+                {ICONS.Search} Busca Manual
               </h2>
-              <button onClick={() => setIsAddingNew(true)} className="text-[10px] font-black uppercase text-purple-main bg-purple-main/5 px-2 py-1 rounded-lg">+ Novo</button>
+              <button onClick={() => setIsAddingNew(true)} className="text-[10px] font-black uppercase text-purple-main bg-purple-main/10 px-3 py-1.5 rounded-xl hover:bg-purple-main hover:text-white transition-all">+ Novo</button>
             </div>
             <input 
               type="text" 
               placeholder="Nome da criança..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-light p-3 rounded-xl font-bold mb-3 outline-none text-sm"
+              className="w-full bg-gray-light p-4 rounded-xl font-bold mb-4 outline-none border-2 border-transparent focus:border-purple-main text-sm"
             />
-            <div className="space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-1.5 max-h-[220px] overflow-y-auto custom-scrollbar">
               {filteredKids.map(kid => (
                 <button 
                   key={kid.id}
                   onClick={() => handleManualCheckin(kid)}
-                  className="w-full flex items-center justify-between p-2.5 hover:bg-purple-main/5 rounded-xl transition-colors text-xs font-bold text-gray-700"
+                  className="w-full flex items-center justify-between p-3.5 hover:bg-purple-main/10 rounded-xl transition-all text-sm font-bold text-gray-700 group"
                 >
                   <span>{kid.nome} {kid.sobrenome}</span>
-                  <span className="text-purple-main">{ICONS.Plus}</span>
+                  <span className="text-purple-main group-hover:scale-125 transition-transform">{ICONS.Plus}</span>
                 </button>
               ))}
             </div>
@@ -208,83 +208,86 @@ const CultoAtivo: React.FC = () => {
         </div>
 
         <div className="lg:col-span-8">
-          <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 min-h-[300px]">
-            <h2 className="text-sm font-black text-purple-dark mb-4 uppercase flex items-center gap-2">
-              {ICONS.Baby} Sala ({activeCheckins.length})
+          <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 min-h-[450px]">
+            <h2 className="text-base font-black text-purple-dark mb-6 uppercase flex items-center gap-3">
+              {ICONS.Baby} Crianças na Sala ({activeCheckins.length})
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {activeCheckins.map(check => {
                 const kid = allCriancas.find(k => k.id === check.idCrianca);
                 return (
-                  <div key={check.id} className="bg-gray-light p-4 rounded-2xl flex flex-col justify-between">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 overflow-hidden mr-2">
-                        <h4 className="font-black text-purple-dark text-sm truncate leading-tight">{kid?.nome} {kid?.sobrenome}</h4>
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{check.horaEntrada}</p>
+                  <div key={check.id} className="bg-gray-light p-5 rounded-[1.5rem] flex flex-col justify-between border-2 border-transparent hover:border-purple-main/20 transition-all shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1 overflow-hidden mr-3">
+                        <h4 className="font-black text-purple-dark text-base truncate leading-tight">{kid?.nome} {kid?.sobrenome}</h4>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Entrada: {check.horaEntrada}</p>
                       </div>
-                      <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-1.5 bg-white rounded-lg shadow-sm">{ICONS.QrCode}</button>
+                      <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-2.5 bg-white rounded-xl shadow-md hover:bg-purple-main hover:text-white transition-all">{ICONS.QrCode}</button>
                     </div>
-                    <button onClick={() => setShowCheckout(check)} className="w-full bg-white text-purple-main border border-purple-main/20 hover:bg-purple-main hover:text-white py-2 rounded-lg font-black text-[10px] transition-all uppercase">LIBERAR</button>
+                    <button onClick={() => setShowCheckout(check)} className="w-full bg-white text-purple-main border-2 border-purple-main/20 hover:border-purple-main hover:bg-purple-main hover:text-white py-2.5 rounded-xl font-black text-[11px] transition-all uppercase tracking-widest shadow-sm">REALIZAR SAÍDA</button>
                   </div>
                 );
               })}
+              {activeCheckins.length === 0 && (
+                <div className="col-span-full py-20 text-center text-gray-300 font-bold uppercase tracking-widest">Nenhuma criança na sala no momento.</div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modal Cadastro Compacto */}
+      {/* Modal Cadastro Intermediário */}
       {isAddingNew && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in zoom-in duration-300">
-            <h2 className="text-lg font-black text-purple-dark mb-4 uppercase">Cadastro Rápido</h2>
-            <form onSubmit={handleQuickRegister} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <input required placeholder="Nome" value={newKidForm.nome} onChange={e => setNewKidForm({...newKidForm, nome: e.target.value})} className="bg-gray-light p-3 rounded-lg font-bold text-sm" />
-                <input required placeholder="Sobrenome" value={newKidForm.sobrenome} onChange={e => setNewKidForm({...newKidForm, sobrenome: e.target.value})} className="bg-gray-light p-3 rounded-lg font-bold text-sm" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
+          <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-300">
+            <h2 className="text-xl font-black text-purple-dark mb-6 uppercase tracking-tight">Novo Cadastro Rápido</h2>
+            <form onSubmit={handleQuickRegister} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <input required placeholder="Nome" value={newKidForm.nome} onChange={e => setNewKidForm({...newKidForm, nome: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
+                <input required placeholder="Sobrenome" value={newKidForm.sobrenome} onChange={e => setNewKidForm({...newKidForm, sobrenome: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <input required type="date" value={newKidForm.dataNascimento} onChange={e => setNewKidForm({...newKidForm, dataNascimento: e.target.value})} className="bg-gray-light p-3 rounded-lg font-bold text-sm" />
-                <input required placeholder="Responsável" value={newKidForm.responsavelNome} onChange={e => setNewKidForm({...newKidForm, responsavelNome: e.target.value})} className="bg-gray-light p-3 rounded-lg font-bold text-sm" />
+              <div className="grid grid-cols-2 gap-4">
+                <input required type="date" value={newKidForm.dataNascimento} onChange={e => setNewKidForm({...newKidForm, dataNascimento: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
+                <input required placeholder="Responsável" value={newKidForm.responsavelNome} onChange={e => setNewKidForm({...newKidForm, responsavelNome: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
               </div>
-              <input required placeholder="WhatsApp" value={newKidForm.whatsapp} onChange={e => setNewKidForm({...newKidForm, whatsapp: e.target.value})} className="w-full bg-gray-light p-3 rounded-lg font-bold text-sm" />
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button type="button" onClick={() => setIsAddingNew(false)} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-xs uppercase">CANCELAR</button>
-                <button type="submit" className="bg-purple-main text-white font-black py-3 rounded-xl shadow-lg text-xs uppercase">SALVAR E ENTRAR</button>
+              <input required placeholder="WhatsApp (DDD + Número)" value={newKidForm.whatsapp} onChange={e => setNewKidForm({...newKidForm, whatsapp: e.target.value})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm" />
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <button type="button" onClick={() => setIsAddingNew(false)} className="bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest">CANCELAR</button>
+                <button type="submit" className="bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase tracking-widest">SALVAR E ENTRAR</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal Saída Compacto */}
+      {/* Modal Saída Intermediário */}
       {showCheckout && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center">
-            <h2 className="text-lg font-black text-purple-dark mb-1 uppercase">Liberar Criança</h2>
-            <p className="text-xs font-bold text-gray-500 mb-6">Quem veio buscar {allCriancas.find(k => k.id === showCheckout.idCrianca)?.nome}?</p>
-            <input type="text" placeholder="Nome do responsável..." autoFocus value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} className="w-full bg-gray-light p-4 rounded-xl font-bold mb-6 outline-none text-sm" />
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setShowCheckout(null)} className="bg-gray-100 text-gray-500 font-black py-4 rounded-xl text-xs">VOLTAR</button>
-              <button onClick={handleConfirmCheckout} disabled={!checkoutName} className="bg-green-500 text-white font-black py-4 rounded-xl shadow-lg disabled:opacity-50 text-xs uppercase">CONFIRMAR</button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
+          <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center animate-in zoom-in duration-300">
+            <h2 className="text-xl font-black text-purple-dark mb-2 uppercase tracking-tight">Confirmar Saída</h2>
+            <p className="text-sm font-bold text-gray-500 mb-8 px-4">Quem veio buscar {allCriancas.find(k => k.id === showCheckout.idCrianca)?.nome}?</p>
+            <input type="text" placeholder="Nome do responsável..." autoFocus value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} className="w-full bg-gray-light p-5 rounded-2xl font-bold mb-8 outline-none border-2 border-transparent focus:border-purple-main text-sm" />
+            <div className="grid grid-cols-2 gap-4">
+              <button onClick={() => setShowCheckout(null)} className="bg-gray-100 text-gray-500 font-black py-5 rounded-2xl text-xs tracking-widest">VOLTAR</button>
+              <button onClick={handleConfirmCheckout} disabled={!checkoutName} className="bg-green-500 text-white font-black py-5 rounded-2xl shadow-xl disabled:opacity-50 text-xs uppercase tracking-widest">CONFIRMAR</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Preview Etiqueta Otimizado */}
+      {/* Preview Etiqueta Intermediário */}
       {labelData && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 print:hidden">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl text-center max-w-xs w-full">
-            <p className="text-[10px] font-black text-purple-main mb-4 uppercase">Etiqueta</p>
-            <div className="border border-dashed border-gray-300 p-3 mb-6 bg-gray-50 rounded-lg">
-               <h3 className="text-xl font-black text-black leading-tight">{labelData.kid.nome.toUpperCase()}</h3>
-               <p className="text-xs font-bold text-gray-600 truncate">{labelData.kid.sobrenome}</p>
-               <div className="my-2 border-t border-gray-200"></div>
-               <p className="text-[8px] font-black uppercase text-gray-400">Responsável</p>
-               <p className="text-[10px] font-bold">{labelData.kid.responsavelNome}</p>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 print:hidden">
+          <div className="bg-white p-8 rounded-[2rem] shadow-2xl text-center max-w-xs w-full animate-in slide-in-from-bottom-10">
+            <p className="text-[10px] font-black text-purple-main mb-6 uppercase tracking-[0.3em]">Gerando Etiqueta...</p>
+            <div className="border-4 border-dashed border-gray-200 p-6 mb-8 bg-gray-50 rounded-2xl">
+               <h3 className="text-2xl font-black text-black leading-tight mb-1">{labelData.kid.nome.toUpperCase()}</h3>
+               <p className="text-sm font-bold text-gray-600 truncate mb-4">{labelData.kid.sobrenome}</p>
+               <div className="my-4 border-t-2 border-gray-200"></div>
+               <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Responsável</p>
+               <p className="text-sm font-black text-purple-dark">{labelData.kid.responsavelNome}</p>
             </div>
-            <button onClick={() => setLabelData(null)} className="w-full bg-purple-main text-white py-3 rounded-xl font-black uppercase text-[10px]">FECHAR</button>
+            <button onClick={() => setLabelData(null)} className="w-full bg-purple-main text-white py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl">FECHAR PREVIEW</button>
           </div>
         </div>
       )}

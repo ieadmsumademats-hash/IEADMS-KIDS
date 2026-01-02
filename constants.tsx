@@ -36,23 +36,23 @@ export const ADMIN_CREDENTIALS = {
 };
 
 export const ICONS = {
-  Users: <Users className="w-4 h-4" />,
-  Calendar: <Calendar className="w-4 h-4" />,
-  Play: <Play className="w-4 h-4" />,
-  CheckCircle: <CheckCircle className="w-4 h-4" />,
-  LogOut: <LogOut className="w-4 h-4" />,
-  BarChart: <BarChart3 className="w-4 h-4" />,
-  Baby: <Baby className="w-4 h-4" />,
-  Key: <Key className="w-4 h-4" />,
-  QrCode: <QrCode className="w-4 h-4" />,
-  Phone: <Phone className="w-4 h-4" />,
-  ChevronRight: <ChevronRight className="w-4 h-4" />,
-  ArrowLeft: <ArrowLeft className="w-4 h-4" />,
-  Search: <Search className="w-4 h-4" />,
-  Plus: <Plus className="w-4 h-4" />,
-  Info: <Info className="w-4 h-4" />,
-  Clock: <Clock className="w-4 h-4" />,
-  Dashboard: <LayoutDashboard className="w-4 h-4" />
+  Users: <Users className="w-[18px] h-[18px]" />,
+  Calendar: <Calendar className="w-[18px] h-[18px]" />,
+  Play: <Play className="w-[18px] h-[18px]" />,
+  CheckCircle: <CheckCircle className="w-[18px] h-[18px]" />,
+  LogOut: <LogOut className="w-[18px] h-[18px]" />,
+  BarChart: <BarChart3 className="w-[18px] h-[18px]" />,
+  Baby: <Baby className="w-[18px] h-[18px]" />,
+  Key: <Key className="w-[18px] h-[18px]" />,
+  QrCode: <QrCode className="w-[18px] h-[18px]" />,
+  Phone: <Phone className="w-[18px] h-[18px]" />,
+  ChevronRight: <ChevronRight className="w-[18px] h-[18px]" />,
+  ArrowLeft: <ArrowLeft className="w-[18px] h-[18px]" />,
+  Search: <Search className="w-[18px] h-[18px]" />,
+  Plus: <Plus className="w-[18px] h-[18px]" />,
+  Info: <Info className="w-[18px] h-[18px]" />,
+  Clock: <Clock className="w-[18px] h-[18px]" />,
+  Dashboard: <LayoutDashboard className="w-[18px] h-[18px]" />
 };
 
 export const CULTO_TYPES: string[] = [
