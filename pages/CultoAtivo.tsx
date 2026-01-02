@@ -314,6 +314,9 @@ const CultoAtivo: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-3">
                 {activeCheckins.map(check => {
                     const kid = allCriancas.find(k => k.id === check.idCrianca);
+                    // Verifica se a criança veio de um pré-check-in confirmado para este culto
+                    const hasPreCheckin = preCheckins.some(p => p.idCrianca === check.idCrianca && p.idCulto === id && p.status === 'confirmado');
+                    
                     return (
                     <div key={check.id} className="bg-gray-light p-4 rounded-2xl flex items-center justify-between border-2 border-transparent hover:border-purple-main/20 transition-all shadow-sm group">
                         <div className="flex-1 overflow-hidden mr-4">
@@ -334,13 +337,16 @@ const CultoAtivo: React.FC = () => {
                             >
                               {ICONS.QrCode}
                             </button>
-                            <button 
-                              onClick={() => handleSendNotification(kid!.id)}
-                              className="text-yellow-600 p-2.5 bg-white rounded-xl shadow-sm hover:bg-yellow-main hover:text-purple-dark transition-all transform active:scale-90"
-                              title="Notificar Responsável"
-                            >
-                              <div className="animate-pulse">{ICONS.Info}</div>
-                            </button>
+                            {/* Botão de Notificação: Visível apenas para quem veio de pré-checkin e com fundo amarelo */}
+                            {hasPreCheckin && (
+                                <button 
+                                  onClick={() => handleSendNotification(kid!.id)}
+                                  className="text-purple-dark p-2.5 bg-yellow-main rounded-xl shadow-sm hover:bg-yellow-secondary transition-all transform active:scale-90"
+                                  title="Notificar Responsável"
+                                >
+                                  <div className="animate-pulse">{ICONS.Info}</div>
+                                </button>
+                            )}
                             <a 
                               href={`https://wa.me/${kid?.whatsapp.replace(/[^\d]/g, '')}?text=Olá, ${kid?.responsavelNome}. Sua criança ${kid?.nome} está te aguardando no Culto Kids para o checkout.`}
                               target="_blank"
