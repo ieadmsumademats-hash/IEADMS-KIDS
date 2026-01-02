@@ -32,7 +32,7 @@ const PreCheckin: React.FC = () => {
     };
     loadData();
 
-    // Check if notifications already granted
+    // Verifica se a notificação já foi concedida
     if (window.Notification && Notification.permission === 'granted') {
       setNotificationsEnabled(true);
     }
@@ -59,10 +59,25 @@ const PreCheckin: React.FC = () => {
   }, [selectedKidId, notificationsEnabled]);
 
   const requestNotificationPermission = async () => {
-    if (!window.Notification) return;
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      setNotificationsEnabled(true);
+    if (!('Notification' in window)) {
+      alert('Atenção: Seu celular não suporta este tipo de alerta automático. Fique atento ao WhatsApp!');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      alert('Você já bloqueou as notificações antes. Para receber os avisos, toque no cadeado ao lado do endereço do site lá em cima e autorize as Notificações.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+      } else {
+        alert('Para receber o aviso quando seu filho estiver pronto, você precisa clicar em "Permitir" na próxima mensagem.');
+      }
+    } catch (err) {
+      console.error("Erro ao solicitar permissão:", err);
     }
   };
 
@@ -74,11 +89,7 @@ const PreCheckin: React.FC = () => {
     if (!activeCulto) return;
     setSelectedKidId(kidId);
 
-    // Solicitar notificação no primeiro clique
-    if (window.Notification && Notification.permission === 'default') {
-      await requestNotificationPermission();
-    }
-
+    // Se as notificações não estiverem habilitadas, forçar o passo 2 a mostrar o botão
     const existing = preCheckins.find(p => p.idCrianca === kidId && p.idCulto === activeCulto.id && p.status === 'pendente');
     
     if (existing) {
@@ -168,16 +179,16 @@ const PreCheckin: React.FC = () => {
              <h2 className="text-2xl font-black text-purple-dark mb-2 uppercase">PRONTO!</h2>
              
              {notificationsEnabled ? (
-                <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-2xl mb-6 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
-                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <div className="bg-green-50 border-2 border-green-200 text-green-700 p-4 rounded-2xl mb-8 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                    Alertas de Chamada Ativados
                 </div>
              ) : (
                 <button 
                   onClick={requestNotificationPermission}
-                  className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded-2xl mb-6 text-[10px] font-black uppercase tracking-widest w-full animate-bounce"
+                  className="bg-yellow-main border-4 border-yellow-secondary text-purple-dark p-5 rounded-[2rem] mb-8 text-xs font-black uppercase tracking-tight w-full animate-pulse shadow-[0_0_20px_rgba(255,200,0,0.4)] hover:scale-105 active:scale-95 transition-all"
                 >
-                  🔔 Clique para permitir alertas no celular
+                  🔔 TOQUE AQUI PARA ATIVAR O AVISO DE CHAMADA NO SEU CELULAR!
                 </button>
              )}
 
@@ -185,20 +196,20 @@ const PreCheckin: React.FC = () => {
                 Apresente este código na recepção para confirmar a entrada:
              </p>
 
-             <div className="bg-purple-dark text-yellow-main p-8 rounded-[2rem] shadow-2xl mb-8 transform transition-transform cursor-pointer active:scale-95 select-none">
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 block mb-3">Código de Hoje</span>
+             <div className="bg-purple-dark text-yellow-main p-8 rounded-[2rem] shadow-2xl mb-8 transform transition-transform cursor-pointer active:scale-95 select-none border-b-8 border-purple-main">
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 block mb-3 text-white">Código de Hoje</span>
                 <span className="text-5xl md:text-6xl font-black tracking-widest block font-mono">{generated}</span>
              </div>
 
              <button 
               onClick={() => navigate('/pais')}
-              className="w-full bg-gray-light text-purple-dark font-black py-4 rounded-2xl hover:bg-gray-200 transition-colors shadow-md text-xs uppercase"
+              className="w-full bg-gray-light text-purple-dark font-black py-4 rounded-2xl hover:bg-gray-200 transition-colors shadow-md text-[10px] uppercase tracking-widest"
              >
                 VOLTAR AO INÍCIO
              </button>
              
-             <p className="mt-6 text-[9px] font-black text-gray-400 uppercase tracking-widest leading-relaxed px-4">
-                Mantenha esta página aberta em segundo plano para receber alertas.
+             <p className="mt-8 text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed px-4">
+                Mantenha esta página aberta em segundo plano para receber os avisos.
              </p>
           </div>
         )}
