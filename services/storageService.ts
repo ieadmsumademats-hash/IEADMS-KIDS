@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
 import { Crianca, Culto, CheckIn, PreCheckIn, NotificacaoAtiva } from '../types';
 
-// O schema deve ser EXATAMENTE o mesmo criado no banco de dados
 const PROJECT_SCHEMA = "kids_ieadms";
 
 export const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
@@ -22,10 +21,8 @@ const TABLES = {
 
 const handleError = (error: any, context: string) => {
   const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-  
-  // Se for erro de tabela inexistente, apenas avisa no console sem interromper o app
   if (errorMessage.includes("schema cache") || errorMessage.includes("not found")) {
-    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela '${TABLES.NOTIFICACOES}' não encontrada. Notificações desabilitadas.`);
+    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela '${TABLES.NOTIFICACOES}' não encontrada.`);
   } else {
     console.error(`❌ Erro em ${context}:`, errorMessage);
   }
@@ -64,7 +61,6 @@ export const storageService = {
       if (c.responsavelNome) payload.responsavel_nome = c.responsavelNome;
       if (c.whatsapp) payload.whatsapp = c.whatsapp;
       if (c.observacoes !== undefined) payload.observacoes = c.observacoes;
-      
       const { error } = await supabase.from(TABLES.CRIANCAS).update(payload).eq('id', id);
       if (error) throw error;
     } catch (e) { handleError(e, 'updateCrianca'); throw e; }
@@ -163,6 +159,18 @@ export const storageService = {
 
   addCheckin: async (c: Omit<CheckIn, 'id'>) => {
     try {
+      // Camada extra de proteção: verifica se já existe registro "presente" para esta criança NESTE culto
+      const { data: existing } = await supabase.from(TABLES.CHECKINS)
+        .select('id')
+        .eq('id_crianca', c.idCrianca)
+        .eq('id_culto', c.idCulto)
+        .eq('status', 'presente')
+        .maybeSingle();
+
+      if (existing) {
+        throw new Error("Criança já está presente neste culto.");
+      }
+
       const { error } = await supabase.from(TABLES.CHECKINS).insert([{
         id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, status: 'presente'
       }]);
@@ -220,7 +228,6 @@ export const storageService = {
     } catch (e) { handleError(e, 'updatePreCheckin'); throw e; }
   },
 
-  // MÉTODOS DE NOTIFICAÇÃO TEMPORÁRIA
   sendNotificacao: async (idCrianca: string, idCulto: string): Promise<boolean> => {
     try {
       const { error } = await supabase.from(TABLES.NOTIFICACOES).insert([{
@@ -241,8 +248,7 @@ export const storageService = {
       const { error } = await supabase.from(TABLES.NOTIFICACOES).delete().eq('id_culto', idCulto);
       if (error) throw error;
     } catch (e) { 
-      // Silencioso para não travar o encerramento do culto
-      console.warn("Aviso: Falha ao limpar notificações (tabela pode não existir no schema).");
+      console.warn("Aviso: Falha ao limpar notificações.");
     }
   },
 

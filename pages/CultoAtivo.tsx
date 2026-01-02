@@ -100,10 +100,13 @@ const CultoAtivo: React.FC = () => {
   };
 
   const handleManualCheckin = async (kid: Crianca) => {
+    // TRAVA: Verifica se já está presente neste culto específico
     if (activeCheckins.some(c => c.idCrianca === kid.id)) {
-      alert(`${kid.nome} já está presente.`);
+      alert(`Atenção: ${kid.nome} já está presente neste culto.`);
+      setSearchTerm('');
       return;
     }
+
     const newCheck: Omit<CheckIn, 'id'> = {
       idCrianca: kid.id,
       idCulto: id!,
@@ -117,7 +120,7 @@ const CultoAtivo: React.FC = () => {
       if (lastCheck) triggerLabelPrint(kid, lastCheck);
       setSearchTerm('');
     } catch (e) {
-      alert("Erro ao realizar check-in.");
+      alert("Erro ao realizar check-in. Tente novamente.");
     }
   };
 
@@ -137,10 +140,23 @@ const CultoAtivo: React.FC = () => {
 
   const handleCodeCheckin = async () => {
     const code = codeQuery.trim().toUpperCase();
-    const pre = preCheckins.find(p => p.codigo === code && p.status === 'pendente');
-    if (!pre) { alert('Código inválido.'); return; }
+    const pre = preCheckins.find(p => p.codigo === code && p.status === 'pendente' && p.idCulto === id);
+    
+    if (!pre) { 
+      alert('Código inválido ou já utilizado para este culto.'); 
+      return; 
+    }
+
     const kid = allCriancas.find(k => k.id === pre.idCrianca);
     if (kid) {
+      // TRAVA: Verifica duplicidade antes de confirmar o código
+      if (activeCheckins.some(c => c.idCrianca === kid.id)) {
+        alert(`${kid.nome} já realizou a entrada anteriormente.`);
+        await storageService.updatePreCheckin(pre.id, { status: 'confirmado' }); // Marca como resolvido para sumir da lista
+        setCodeQuery('KIDS-');
+        return;
+      }
+
       await handleManualCheckin(kid);
       await storageService.updatePreCheckin(pre.id, { status: 'confirmado', dataHoraCheckin: new Date().toISOString() });
       setCodeQuery('KIDS-');
@@ -184,6 +200,7 @@ const CultoAtivo: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      {/* Seção de Impressão */}
       <div id="print-section" className="hidden flex-col items-center justify-center text-center p-4">
         {labelData && (
           <div className="flex flex-col items-center w-full">
@@ -203,7 +220,6 @@ const CultoAtivo: React.FC = () => {
       </div>
 
       <div className="print:hidden space-y-6">
-        {/* Header Intermediário */}
         <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border-l-[10px] border-green-500 flex items-center justify-between gap-6 sticky top-0 z-30">
             <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-3 py-1 rounded-full mb-2 inline-block">ATIVO AGORA</span>
@@ -297,11 +313,6 @@ const CultoAtivo: React.FC = () => {
                             </div>
                         );
                     })}
-                    {finishedCheckins.length === 0 && (
-                        <div className="py-10 text-center text-gray-300">
-                            <p className="text-[10px] font-black uppercase tracking-widest italic leading-relaxed">Nenhuma criança<br/>saiu ainda hoje.</p>
-                        </div>
-                    )}
                 </div>
             </div>
             </div>
@@ -314,7 +325,6 @@ const CultoAtivo: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-3">
                 {activeCheckins.map(check => {
                     const kid = allCriancas.find(k => k.id === check.idCrianca);
-                    // Verifica se a criança veio de um pré-check-in confirmado para este culto
                     const hasPreCheckin = preCheckins.some(p => p.idCrianca === check.idCrianca && p.idCulto === id && p.status === 'confirmado');
                     
                     return (
@@ -330,73 +340,28 @@ const CultoAtivo: React.FC = () => {
                         </div>
                         
                         <div className="flex items-center gap-1.5">
-                            <button 
-                                onClick={() => triggerLabelPrint(kid!, check)} 
-                                className="text-purple-main p-2.5 bg-white rounded-xl shadow-sm hover:bg-purple-main hover:text-white transition-all transform active:scale-90"
-                                title="Imprimir Etiqueta"
-                            >
+                            <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-2.5 bg-white rounded-xl shadow-sm hover:bg-purple-main hover:text-white transition-all transform active:scale-90" title="Imprimir Etiqueta">
                               {ICONS.QrCode}
                             </button>
-                            {/* Botão de Notificação: Visível apenas para quem veio de pré-checkin e com fundo amarelo */}
                             {hasPreCheckin && (
-                                <button 
-                                  onClick={() => handleSendNotification(kid!.id)}
-                                  className="text-purple-dark p-2.5 bg-yellow-main rounded-xl shadow-sm hover:bg-yellow-secondary transition-all transform active:scale-90"
-                                  title="Notificar Responsável"
-                                >
+                                <button onClick={() => handleSendNotification(kid!.id)} className="text-purple-dark p-2.5 bg-yellow-main rounded-xl shadow-sm hover:bg-yellow-secondary transition-all transform active:scale-90" title="Notificar Responsável">
                                   <div className="animate-pulse">{ICONS.Info}</div>
                                 </button>
                             )}
-                            <a 
-                              href={`https://wa.me/${kid?.whatsapp.replace(/[^\d]/g, '')}?text=Olá, ${kid?.responsavelNome}. Sua criança ${kid?.nome} está te aguardando no Culto Kids para o checkout.`}
-                              target="_blank"
-                              className="text-white p-2.5 bg-green-500 rounded-xl shadow-sm hover:bg-green-600 transition-all transform active:scale-90 flex items-center justify-center"
-                              title="WhatsApp do Responsável"
-                            >
+                            <a href={`https://wa.me/${kid?.whatsapp.replace(/[^\d]/g, '')}?text=Olá, ${kid?.responsavelNome}. Sua criança ${kid?.nome} está te aguardando no Culto Kids.`} target="_blank" className="text-white p-2.5 bg-green-500 rounded-xl shadow-sm hover:bg-green-600 transition-all transform active:scale-90 flex items-center justify-center">
                               {ICONS.Phone}
                             </a>
-                            <button 
-                                onClick={() => setShowCheckout(check)} 
-                                className="text-white p-2.5 bg-red-500 rounded-xl shadow-sm hover:bg-red-600 transition-all transform active:scale-95 group-hover:scale-105"
-                                title="Realizar Saída"
-                            >
+                            <button onClick={() => setShowCheckout(check)} className="text-white p-2.5 bg-red-500 rounded-xl shadow-sm hover:bg-red-600 transition-all transform active:scale-95" title="Realizar Saída">
                                 {ICONS.X}
                             </button>
                         </div>
                     </div>
                     );
                 })}
-                {activeCheckins.length === 0 && (
-                    <div className="col-span-full py-20 text-center text-gray-300 font-bold uppercase tracking-widest">Nenhuma criança na sala no momento.</div>
-                )}
                 </div>
             </div>
             </div>
         </div>
-
-        {/* Modal Cadastro Rápido */}
-        {isAddingNew && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
-            <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-300">
-                <h2 className="text-xl font-black text-purple-dark mb-6 uppercase tracking-tight">Novo Cadastro Rápido</h2>
-                <form onSubmit={handleQuickRegister} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <input required placeholder="Nome" value={newKidForm.nome} onChange={e => setNewKidForm({...newKidForm, nome: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
-                    <input required placeholder="Sobrenome" value={newKidForm.sobrenome} onChange={e => setNewKidForm({...newKidForm, sobrenome: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <input required type="date" value={newKidForm.dataNascimento} onChange={e => setNewKidForm({...newKidForm, dataNascimento: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
-                    <input required placeholder="Responsável" value={newKidForm.responsavelNome} onChange={e => setNewKidForm({...newKidForm, responsavelNome: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
-                </div>
-                <input required placeholder="WhatsApp (DDD + Número)" value={newKidForm.whatsapp} onChange={e => setNewKidForm({...newKidForm, whatsapp: formatPhone(e.target.value)})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm" />
-                <div className="grid grid-cols-2 gap-4 pt-4">
-                    <button type="button" onClick={() => setIsAddingNew(false)} className="bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest">CANCELAR</button>
-                    <button type="submit" className="bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase tracking-widest">SALVAR E ENTRAR</button>
-                </div>
-                </form>
-            </div>
-            </div>
-        )}
 
         {/* Modal Saída */}
         {showCheckout && (
@@ -408,33 +373,6 @@ const CultoAtivo: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                 <button onClick={() => setShowCheckout(null)} className="bg-gray-100 text-gray-500 font-black py-5 rounded-2xl text-xs tracking-widest">VOLTAR</button>
                 <button onClick={handleConfirmCheckout} disabled={!checkoutName} className="bg-green-500 text-white font-black py-5 rounded-2xl shadow-xl disabled:opacity-50 text-xs uppercase tracking-widest">CONFIRMAR</button>
-                </div>
-            </div>
-            </div>
-        )}
-
-        {/* Modal Encerrar */}
-        {showEndConfirm && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-red-900/80 backdrop-blur-md">
-            <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl text-center animate-in zoom-in duration-300 border-t-8 border-red-500">
-                <div className="bg-red-100 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
-                    {ICONS.LogOut}
-                </div>
-                <h2 className="text-2xl font-black text-purple-dark mb-3 uppercase">ENCERRAR CULTO?</h2>
-                <p className="text-gray-text font-bold mb-10 text-sm">Esta ação finalizará o registro de todas as atividades de hoje.</p>
-                <div className="flex flex-col gap-3">
-                    <button 
-                        onClick={handleEndCulto}
-                        className="w-full bg-red-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-red-500/20 text-xs uppercase tracking-widest hover:bg-red-600 transition-colors"
-                    >
-                        SIM, ENCERRAR AGORA
-                    </button>
-                    <button 
-                        onClick={() => setShowEndConfirm(false)}
-                        className="w-full bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors"
-                    >
-                        NÃO, VOLTAR
-                    </button>
                 </div>
             </div>
             </div>
