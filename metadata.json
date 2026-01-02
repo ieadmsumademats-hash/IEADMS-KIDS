@@ -1,0 +1,7 @@
+{
+  "name": "IEADMS Kids - Sistema de Controle",
+  "description": "Sistema completo para controle de fluxo de crianças no Culto Kids da Igreja IEADMS, com check-in por código, gestão de histórico e área dos pais.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
