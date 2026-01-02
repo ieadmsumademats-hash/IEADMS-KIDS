@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -43,6 +42,12 @@
         /* Fix for iOS date input sizing */
         input[type="date"] {
             min-height: 2.5rem;
+            -webkit-appearance: none;
+            display: block;
+        }
+        /* Reset zoom on body focus if needed */
+        input:focus {
+            font-size: 16px !important;
         }
     </style>
     <script>

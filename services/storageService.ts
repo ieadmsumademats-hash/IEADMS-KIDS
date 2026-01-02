@@ -1,11 +1,9 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
 import { Crianca, Culto, CheckIn, PreCheckIn } from '../types';
 
 const PROJECT_SCHEMA = "kids_ieadms";
 
-// Inicialização do cliente Supabase forçando o schema kids_ieadms
 export const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
   db: { 
     schema: PROJECT_SCHEMA 
@@ -100,7 +98,7 @@ export const storageService = {
     try {
       const payload: any = {};
       if (updated.status) payload.status = updated.status;
-      if (updated.horaFim) payload.hora_fiem = updated.horaFim;
+      if (updated.horaFim) payload.hora_fim = updated.horaFim;
       const { error } = await supabase.from(TABLES.CULTOS).update(payload).eq('id', id);
       if (error) throw error;
     } catch (e) { handleError(e, 'updateCulto'); throw e; }

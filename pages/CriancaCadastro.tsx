@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants';
@@ -56,7 +55,10 @@ const CriancaCadastro: React.FC = () => {
           <h2 className="text-2xl font-black text-purple-dark mb-3 uppercase">Sucesso!</h2>
           <p className="text-gray-text font-bold mb-8 text-sm">Agora você já pode realizar o Pré-Check-in.</p>
           <button 
-            onClick={() => navigate('/pais')}
+            onClick={() => {
+              // Ensure zoom reset by reloading if necessary or just navigating
+              navigate('/pais');
+            }}
             className="w-full bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase"
           >
             VOLTAR AO INÍCIO
@@ -95,7 +97,14 @@ const CriancaCadastro: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">Nascimento</label>
-                <input required type="date" value={form.dataNascimento} onChange={e => setForm({...form, dataNascimento: e.target.value})} className="w-full bg-gray-light p-3.5 rounded-xl font-bold border-2 border-transparent focus:border-purple-main outline-none text-sm appearance-none" style={{ minWidth: '100%' }} />
+                <input 
+                  required 
+                  type="date" 
+                  value={form.dataNascimento} 
+                  onChange={e => setForm({...form, dataNascimento: e.target.value})} 
+                  className="w-full bg-gray-light p-3.5 rounded-xl font-bold border-2 border-transparent focus:border-purple-main outline-none text-sm appearance-none" 
+                  style={{ minHeight: '3rem' }}
+                />
               </div>
               <div>
                 <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">Responsável</label>

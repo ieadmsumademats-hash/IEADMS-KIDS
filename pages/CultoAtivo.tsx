@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants';
@@ -28,6 +27,7 @@ const CultoAtivo: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [codeQuery, setCodeQuery] = useState('KIDS-');
   const [showCheckout, setShowCheckout] = useState<CheckIn | null>(null);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [checkoutName, setCheckoutName] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -144,10 +144,19 @@ const CultoAtivo: React.FC = () => {
   };
 
   const handleEndCulto = async () => {
-    if (activeCheckins.length > 0) { alert('Libere todas as crianças antes.'); return; }
-    if (confirm('Encerrar culto?')) {
-      await storageService.updateCulto(id!, { status: 'encerrado', horaFim: new Date().toLocaleTimeString('pt-BR') });
-      navigate('/cultos');
+    if (activeCheckins.length > 0) { 
+        alert('Libere todas as crianças antes.'); 
+        setShowEndConfirm(false);
+        return; 
+    }
+    try {
+        await storageService.updateCulto(id!, { 
+            status: 'encerrado', 
+            horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
+        });
+        navigate('/cultos');
+    } catch (e) {
+        alert("Erro ao encerrar culto.");
     }
   };
 
@@ -173,7 +182,7 @@ const CultoAtivo: React.FC = () => {
             <span className="text-2xl font-black block leading-none">{activeCheckins.length}</span>
             <span className="text-[9px] font-black uppercase tracking-widest opacity-80 mt-1">Crianças</span>
           </div>
-          <button onClick={handleEndCulto} className="bg-red-500 hover:bg-red-600 text-white font-black px-6 py-3 rounded-2xl text-xs flex items-center gap-3 transition-colors shadow-lg">
+          <button onClick={() => setShowEndConfirm(true)} className="bg-red-500 hover:bg-red-600 text-white font-black px-6 py-3 rounded-2xl text-xs flex items-center gap-3 transition-colors shadow-lg">
             {ICONS.LogOut} <span className="hidden sm:inline uppercase tracking-widest">ENCERRAR</span>
           </button>
         </div>
@@ -185,15 +194,20 @@ const CultoAtivo: React.FC = () => {
             <h2 className="w-full text-base font-black text-purple-dark mb-4 uppercase flex items-center gap-3">
               {ICONS.QrCode} Confirmar Código
             </h2>
-            <div className="flex gap-2 w-full">
+            <div className="flex bg-white rounded-xl overflow-hidden w-full border-4 border-white shadow-inner">
               <input 
                 type="text" 
                 placeholder="EX: KIDS-1234"
                 value={codeQuery}
                 onChange={handleCodeChange}
-                className="flex-1 min-w-0 p-4 rounded-xl font-black text-xl tracking-widest uppercase outline-none focus:ring-4 focus:ring-purple-main/20"
+                className="flex-1 min-w-0 p-4 font-black text-xl tracking-widest uppercase outline-none focus:bg-gray-50"
               />
-              <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-5 rounded-xl font-black text-sm hover:bg-purple-main transition-colors uppercase whitespace-nowrap">OK</button>
+              <button 
+                onClick={handleCodeCheckin} 
+                className="bg-purple-dark text-white px-6 font-black text-sm hover:bg-purple-main transition-colors uppercase whitespace-nowrap"
+              >
+                OK
+              </button>
             </div>
           </div>
 
@@ -255,7 +269,7 @@ const CultoAtivo: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Cadastro Intermediário */}
+      {/* Modal Cadastro Rápido */}
       {isAddingNew && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
           <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-300">
@@ -279,7 +293,7 @@ const CultoAtivo: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Saída Intermediário */}
+      {/* Modal Saída */}
       {showCheckout && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
           <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center animate-in zoom-in duration-300">
@@ -294,7 +308,34 @@ const CultoAtivo: React.FC = () => {
         </div>
       )}
 
-      {/* Preview Etiqueta Intermediário */}
+      {/* Modal Customizado Encerrar Culto */}
+      {showEndConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-red-900/80 backdrop-blur-md">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl text-center animate-in zoom-in duration-300 border-t-8 border-red-500">
+             <div className="bg-red-100 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
+                {ICONS.LogOut}
+             </div>
+             <h2 className="text-2xl font-black text-purple-dark mb-3 uppercase">ENCERRAR CULTO?</h2>
+             <p className="text-gray-text font-bold mb-10 text-sm">Esta ação finalizará o registro de todas as atividades de hoje.</p>
+             <div className="flex flex-col gap-3">
+                <button 
+                    onClick={handleEndCulto}
+                    className="w-full bg-red-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-red-500/20 text-xs uppercase tracking-widest hover:bg-red-600 transition-colors"
+                >
+                    SIM, ENCERRAR AGORA
+                </button>
+                <button 
+                    onClick={() => setShowEndConfirm(false)}
+                    className="w-full bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors"
+                >
+                    NÃO, VOLTAR
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Etiqueta */}
       {labelData && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 print:hidden">
           <div className="bg-white p-8 rounded-[2rem] shadow-2xl text-center max-w-xs w-full animate-in slide-in-from-bottom-10">
