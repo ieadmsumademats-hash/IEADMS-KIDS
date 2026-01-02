@@ -20,12 +20,14 @@ const TABLES = {
 };
 
 const handleError = (error: any, context: string) => {
-  if (error?.code === '42501' || error?.message?.includes('permission denied')) {
+  const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+  
+  if (errorMessage.includes("schema cache") || errorMessage.includes("not found")) {
+    console.error(`❌ ERRO CRÍTICO EM ${context}: A tabela '${TABLES.NOTIFICACOES}' não foi encontrada no schema '${PROJECT_SCHEMA}'. Certifique-se de executar o comando CREATE TABLE no SQL Editor do Supabase.`);
+  } else if (error?.code === '42501' || errorMessage?.includes('permission denied')) {
     console.error(`🔐 ERRO DE PERMISSÃO EM ${context}: Execute o comando GRANT no SQL Editor para o schema '${PROJECT_SCHEMA}'.`);
-  } else if (error?.code === '42P01') {
-    console.error(`❌ TABELA NÃO ENCONTRADA EM ${context}: Verifique se a tabela existe no schema '${PROJECT_SCHEMA}'.`);
   } else {
-    console.error(`❌ Erro em ${context}:`, error);
+    console.error(`❌ Erro em ${context}:`, errorMessage);
   }
   return null;
 };
@@ -197,7 +199,7 @@ export const storageService = {
   },
 
   // MÉTODOS DE NOTIFICAÇÃO TEMPORÁRIA
-  sendNotificacao: async (idCrianca: string, idCulto: string) => {
+  sendNotificacao: async (idCrianca: string, idCulto: string): Promise<boolean> => {
     try {
       const { error } = await supabase.from(TABLES.NOTIFICACOES).insert([{
         id_crianca: idCrianca,
@@ -205,7 +207,11 @@ export const storageService = {
         mensagem: 'Papai/Mamãe sua criança está te aguardando para o Checkout'
       }]);
       if (error) throw error;
-    } catch (e) { handleError(e, 'sendNotificacao'); }
+      return true;
+    } catch (e) { 
+      handleError(e, 'sendNotificacao'); 
+      return false;
+    }
   },
 
   clearNotificacoes: async (idCulto: string) => {

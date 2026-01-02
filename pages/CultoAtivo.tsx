@@ -83,8 +83,12 @@ const CultoAtivo: React.FC = () => {
 
   const handleSendNotification = async (kidId: string) => {
     if (!id) return;
-    await storageService.sendNotificacao(kidId, id);
-    alert('Notificação enviada ao celular do responsável!');
+    const success = await storageService.sendNotificacao(kidId, id);
+    if (success) {
+      alert('Notificação enviada ao celular do responsável!');
+    } else {
+      alert('Tabela de notificações não encontrada. Peça ao administrador para criar a tabela "notificacoes_ativas" no Supabase.');
+    }
   };
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,9 +165,7 @@ const CultoAtivo: React.FC = () => {
         return; 
     }
     try {
-        // LIMPEZA DAS NOTIFICAÇÕES TEMPORÁRIAS DO CULTO
         await storageService.clearNotificacoes(id!);
-        
         await storageService.updateCulto(id!, { 
             status: 'encerrado', 
             horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
@@ -182,7 +184,6 @@ const CultoAtivo: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* SEÇÃO OCULTA PARA IMPRESSÃO (ESTILO POST-IT 80x80mm) */}
       <div id="print-section" className="hidden flex-col items-center justify-center text-center p-4">
         {labelData && (
           <div className="flex flex-col items-center w-full">
@@ -310,25 +311,32 @@ const CultoAtivo: React.FC = () => {
                 <h2 className="text-base font-black text-purple-dark mb-6 uppercase flex items-center gap-3">
                 {ICONS.Baby} Crianças na Sala ({activeCheckins.length})
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-3">
                 {activeCheckins.map(check => {
                     const kid = allCriancas.find(k => k.id === check.idCrianca);
                     return (
-                    <div key={check.id} className="bg-gray-light p-5 rounded-[1.5rem] flex flex-col justify-between border-2 border-transparent hover:border-purple-main/20 transition-all shadow-sm">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1 overflow-hidden mr-3">
-                              <h4 className="font-black text-purple-dark text-base truncate leading-tight">{kid?.nome} {kid?.sobrenome}</h4>
-                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Entrada: {check.horaEntrada}</p>
-                          </div>
-                          
-                          {/* AÇÕES DA CRIANÇA NO CULTO */}
-                          <div className="flex flex-col gap-2">
-                            <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-2.5 bg-white rounded-xl shadow-sm hover:bg-purple-main hover:text-white transition-all">
+                    <div key={check.id} className="bg-gray-light p-4 rounded-2xl flex items-center justify-between border-2 border-transparent hover:border-purple-main/20 transition-all shadow-sm group">
+                        <div className="flex-1 overflow-hidden mr-4">
+                            <h4 className="font-black text-purple-dark text-sm truncate leading-tight">{kid?.nome} {kid?.sobrenome}</h4>
+                            <div className="flex items-center gap-3 mt-0.5">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Entrada: {check.horaEntrada}</p>
+                                {kid?.observacoes && (
+                                    <span className="bg-red-100 text-red-500 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter" title={kid.observacoes}>MED: {kid.observacoes}</span>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1.5">
+                            <button 
+                                onClick={() => triggerLabelPrint(kid!, check)} 
+                                className="text-purple-main p-2.5 bg-white rounded-xl shadow-sm hover:bg-purple-main hover:text-white transition-all transform active:scale-90"
+                                title="Imprimir Etiqueta"
+                            >
                               {ICONS.QrCode}
                             </button>
                             <button 
                               onClick={() => handleSendNotification(kid!.id)}
-                              className="text-yellow-600 p-2.5 bg-white rounded-xl shadow-sm hover:bg-yellow-main hover:text-purple-dark transition-all"
+                              className="text-yellow-600 p-2.5 bg-white rounded-xl shadow-sm hover:bg-yellow-main hover:text-purple-dark transition-all transform active:scale-90"
                               title="Notificar Responsável"
                             >
                               <div className="animate-pulse">{ICONS.Info}</div>
@@ -336,14 +344,19 @@ const CultoAtivo: React.FC = () => {
                             <a 
                               href={`https://wa.me/${kid?.whatsapp.replace(/[^\d]/g, '')}?text=Olá, ${kid?.responsavelNome}. Sua criança ${kid?.nome} está te aguardando no Culto Kids para o checkout.`}
                               target="_blank"
-                              className="text-white p-2.5 bg-green-500 rounded-xl shadow-sm hover:bg-green-600 transition-all text-center"
+                              className="text-white p-2.5 bg-green-500 rounded-xl shadow-sm hover:bg-green-600 transition-all transform active:scale-90 flex items-center justify-center"
                               title="WhatsApp do Responsável"
                             >
                               {ICONS.Phone}
                             </a>
-                          </div>
+                            <button 
+                                onClick={() => setShowCheckout(check)} 
+                                className="text-white p-2.5 bg-red-500 rounded-xl shadow-sm hover:bg-red-600 transition-all transform active:scale-95 group-hover:scale-105"
+                                title="Realizar Saída"
+                            >
+                                {ICONS.X}
+                            </button>
                         </div>
-                        <button onClick={() => setShowCheckout(check)} className="w-full bg-white text-purple-main border-2 border-purple-main/20 hover:border-purple-main hover:bg-purple-main hover:text-white py-2.5 rounded-xl font-black text-[11px] transition-all uppercase tracking-widest shadow-sm">REALIZAR SAÍDA</button>
                     </div>
                     );
                 })}
