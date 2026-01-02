@@ -8,7 +8,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(ADMIN_CREDENTIALS.email);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -54,17 +54,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-black text-gray-text uppercase tracking-widest mb-2 px-1">Senha</label>
+              <label className="block text-xs font-black text-gray-text uppercase tracking-widest mb-2 px-1">Senha (Visível)</label>
               <div className="relative group">
                 <span className="absolute left-5 top-1/2 -translate-y-1/2 text-purple-main group-focus-within:text-yellow-main transition-colors">
                   {ICONS.Key}
                 </span>
                 <input
-                  type="password"
+                  type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-gray-light border-2 border-transparent focus:border-purple-main outline-none px-14 py-5 rounded-3xl transition-all font-bold"
-                  placeholder="••••••••"
+                  placeholder="Digite a senha"
                   required
                 />
               </div>

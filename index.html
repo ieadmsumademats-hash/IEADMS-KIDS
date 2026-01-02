@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -49,6 +50,33 @@
         input:focus {
             font-size: 16px !important;
         }
+
+        /* PRINT STYLES - Post-it Label */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-section, #print-section * {
+                visibility: visible;
+            }
+            #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm; /* Approx post-it width */
+                height: 80mm; /* Approx post-it height */
+                padding: 5mm;
+                border: 1px solid #eee;
+                display: flex !important;
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+            }
+            @page {
+                size: 80mm 80mm;
+                margin: 0;
+            }
+        }
     </style>
     <script>
         window.process = { env: { NODE_ENV: 'production' } };
@@ -73,6 +101,7 @@
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'bounce-slow': 'bounce 2s infinite',
                     },
                     keyframes: {
                         shake: {

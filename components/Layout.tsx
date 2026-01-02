@@ -17,13 +17,11 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
   const [activeCulto, setActiveCulto] = useState<Culto | null>(null);
 
   useEffect(() => {
-    if (isAdmin) {
-      const unsubscribe = storageService.subscribeToActiveCulto((culto) => {
-        setActiveCulto(culto);
-      });
-      return () => unsubscribe();
-    }
-  }, [isAdmin]);
+    const unsubscribe = storageService.subscribeToActiveCulto((culto) => {
+      setActiveCulto(culto);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const menuItems = [
     { label: 'Painel', path: '/', icon: ICONS.Dashboard },
@@ -31,6 +29,8 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
     { label: 'Histórico', path: '/cultos', icon: ICONS.Calendar },
     { label: 'Estatísticas', path: '/estatisticas', icon: ICONS.BarChart },
   ];
+
+  const isAtivoPage = location.pathname.includes('/cultos/ativo');
 
   if (!isAdmin || location.pathname.startsWith('/pais') || location.pathname === '/login') {
     return <div className="min-h-screen bg-gray-light font-sans">{children}</div>;
@@ -109,6 +109,17 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
       <main className="flex-1 p-6 md:p-10 pb-24 md:pb-10 max-w-[1300px] mx-auto w-full">
         {children}
       </main>
+
+      {/* Botão Flutuante de Culto Ativo */}
+      {activeCulto && !isAtivoPage && (
+        <button
+          onClick={() => navigate(`/cultos/ativo/${activeCulto.id}`)}
+          className="fixed bottom-24 md:bottom-10 right-6 z-[60] bg-green-500 hover:bg-green-600 text-white p-4 md:p-5 rounded-full shadow-[0_10px_30px_rgba(34,197,94,0.4)] flex items-center gap-3 transition-all active:scale-90 group animate-bounce-slow"
+        >
+          <div className="w-3 h-3 bg-white rounded-full animate-pulse shadow-sm" />
+          <span className="font-black text-xs md:text-sm uppercase tracking-widest pr-2">Culto Ativo</span>
+        </button>
+      )}
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-3 px-4 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
         {menuItems.map((item) => {
