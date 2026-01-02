@@ -36,23 +36,23 @@ export const ADMIN_CREDENTIALS = {
 };
 
 export const ICONS = {
-  Users: <Users className="w-5 h-5" />,
-  Calendar: <Calendar className="w-5 h-5" />,
-  Play: <Play className="w-5 h-5" />,
-  CheckCircle: <CheckCircle className="w-5 h-5" />,
-  LogOut: <LogOut className="w-5 h-5" />,
-  BarChart: <BarChart3 className="w-5 h-5" />,
-  Baby: <Baby className="w-5 h-5" />,
-  Key: <Key className="w-5 h-5" />,
-  QrCode: <QrCode className="w-5 h-5" />,
-  Phone: <Phone className="w-5 h-5" />,
-  ChevronRight: <ChevronRight className="w-5 h-5" />,
-  ArrowLeft: <ArrowLeft className="w-5 h-5" />,
-  Search: <Search className="w-5 h-5" />,
-  Plus: <Plus className="w-5 h-5" />,
-  Info: <Info className="w-5 h-5" />,
-  Clock: <Clock className="w-5 h-5" />,
-  Dashboard: <LayoutDashboard className="w-5 h-5" />
+  Users: <Users className="w-4 h-4" />,
+  Calendar: <Calendar className="w-4 h-4" />,
+  Play: <Play className="w-4 h-4" />,
+  CheckCircle: <CheckCircle className="w-4 h-4" />,
+  LogOut: <LogOut className="w-4 h-4" />,
+  BarChart: <BarChart3 className="w-4 h-4" />,
+  Baby: <Baby className="w-4 h-4" />,
+  Key: <Key className="w-4 h-4" />,
+  QrCode: <QrCode className="w-4 h-4" />,
+  Phone: <Phone className="w-4 h-4" />,
+  ChevronRight: <ChevronRight className="w-4 h-4" />,
+  ArrowLeft: <ArrowLeft className="w-4 h-4" />,
+  Search: <Search className="w-4 h-4" />,
+  Plus: <Plus className="w-4 h-4" />,
+  Info: <Info className="w-4 h-4" />,
+  Clock: <Clock className="w-4 h-4" />,
+  Dashboard: <LayoutDashboard className="w-4 h-4" />
 };
 
 export const CULTO_TYPES: string[] = [
