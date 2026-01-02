@@ -9,13 +9,26 @@ const PaisArea: React.FC = () => {
   const navigate = useNavigate();
   const [activeCulto, setActiveCulto] = useState<Culto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = storageService.subscribeToActiveCulto((culto) => {
-      setActiveCulto(culto);
+    let unsubscribe: (() => void) | undefined;
+    
+    try {
+      unsubscribe = storageService.subscribeToActiveCulto((culto) => {
+        setActiveCulto(culto);
+        setLoading(false);
+        setError(null);
+      });
+    } catch (e) {
+      console.error("Falha ao iniciar subscrição:", e);
       setLoading(false);
-    });
-    return () => unsub();
+      setError("Erro de conexão com o servidor. Verifique se o schema está exposto.");
+    }
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   return (
@@ -35,9 +48,19 @@ const PaisArea: React.FC = () => {
       </header>
 
       {loading ? (
-        <div className="mt-20 text-purple-main font-bold">Verificando cultos...</div>
+        <div className="mt-20 flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-purple-main border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-purple-main font-bold">Verificando cultos...</p>
+        </div>
       ) : (
         <div className="w-full max-w-lg mt-16 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-6 rounded-[2rem] border-2 border-red-200 text-center mb-4">
+              <p className="font-black text-sm uppercase tracking-widest mb-1">Erro de Configuração</p>
+              <p className="text-xs font-bold leading-tight">{error}</p>
+            </div>
+          )}
+
           <button 
             onClick={() => navigate('/pais/pre-checkin')}
             disabled={!activeCulto}
@@ -66,7 +89,7 @@ const PaisArea: React.FC = () => {
             <div className="bg-yellow-main text-purple-dark p-5 rounded-3xl relative z-10">{ICONS.Plus}</div>
           </button>
 
-          {!activeCulto && (
+          {!activeCulto && !error && (
             <div className="bg-red-50 text-red-500 p-6 rounded-[2rem] border-2 border-dashed border-red-200 text-center animate-in zoom-in duration-500">
                <p className="text-sm font-black uppercase tracking-widest">Portões Fechados</p>
                <p className="text-xs font-bold opacity-80 mt-1">O check-in só fica disponível durante o horário dos cultos.</p>

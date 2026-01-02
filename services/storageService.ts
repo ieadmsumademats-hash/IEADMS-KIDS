@@ -3,7 +3,6 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
 import { Crianca, Culto, CheckIn, PreCheckIn } from '../types';
 
-// Helper para validar se a string é uma URL válida
 const isValidUrl = (url: string) => {
   try {
     const parsed = new URL(url);
@@ -13,24 +12,19 @@ const isValidUrl = (url: string) => {
   }
 };
 
-let supabase: SupabaseClient;
+const PROJECT_SCHEMA = "kids_ieadms";
 
-// Inicializa o cliente Supabase apenas se a URL for minimamente válida
-// Se for inválida, criamos um Proxy que lança erro apenas ao ser usado,
-// evitando que o app quebre inteiramente no import inicial (White Screen of Death)
+let supabase: any;
+
 if (isValidUrl(supabaseConfig.url)) {
   supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
-    db: { schema: supabaseConfig.schema }
+    db: { 
+      schema: PROJECT_SCHEMA 
+    }
   });
 } else {
-  console.warn("⚠️ Supabase: URL inválida ou não configurada em services/supabaseConfig.ts");
-  supabase = new Proxy({} as SupabaseClient, {
-    get: () => {
-      return () => {
-        console.error("❌ Erro: Tentativa de acessar o banco de dados sem configuração válida do Supabase.");
-        return Promise.resolve({ data: null, error: new Error("Configuração pendente no arquivo supabaseConfig.ts") });
-      };
-    }
+  supabase = new Proxy({} as any, {
+    get: () => () => Promise.resolve({ data: null, error: new Error("URL do Supabase inválida.") })
   });
 }
 
@@ -41,253 +35,194 @@ const TABLES = {
   PRECHECKINS: 'pre_checkins'
 };
 
+// Função auxiliar para tratar erros de Schema não exposto (406)
+const handleError = (error: any, context: string) => {
+  if (error?.message?.includes('406') || error?.code === '406' || error?.status === 406) {
+    console.error(`🚨 ERRO DE CONFIGURAÇÃO (406) em ${context}: O schema '${PROJECT_SCHEMA}' não está exposto no Dashboard do Supabase. Vá em Settings > API > Exposed Schemas e adicione '${PROJECT_SCHEMA}'.`);
+  } else {
+    console.error(`❌ Erro em ${context}:`, error);
+  }
+  throw error;
+};
+
 export const storageService = {
-  // Criancas
   getCriancas: async () => {
-    const { data, error } = await supabase
-      .from(TABLES.CRIANCAS)
-      .select('*')
-      .order('nome', { ascending: true });
-    
-    if (error) throw error;
-    return (data || []).map(d => ({
-      id: d.id,
-      nome: d.nome,
-      sobrenome: d.sobrenome,
-      dataNascimento: d.data_nascimento,
-      responsavelNome: d.responsavel_nome,
-      whatsapp: d.whatsapp,
-      observacoes: d.observacoes,
-      createdAt: d.created_at
-    } as Crianca));
+    try {
+      const { data, error } = await supabase.from(TABLES.CRIANCAS).select('*').order('nome', { ascending: true });
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        id: d.id, nome: d.nome, sobrenome: d.sobrenome, dataNascimento: d.data_nascimento,
+        responsavelNome: d.responsavel_nome, whatsapp: d.whatsapp, observacoes: d.observacoes, createdAt: d.created_at
+      } as Crianca));
+    } catch (e) { return handleError(e, 'getCriancas'); }
   },
 
   addCrianca: async (c: Omit<Crianca, 'id'>) => {
-    const { data, error } = await supabase
-      .from(TABLES.CRIANCAS)
-      .insert([{
-        nome: c.nome,
-        sobrenome: c.sobrenome,
-        data_nascimento: c.dataNascimento,
-        responsavel_nome: c.responsavelNome,
-        whatsapp: c.whatsapp,
-        observacoes: c.observacoes
-      }])
-      .select();
-    if (error) throw error;
-    return data[0];
+    try {
+      const { data, error } = await supabase.from(TABLES.CRIANCAS).insert([{
+        nome: c.nome, sobrenome: c.sobrenome, data_nascimento: c.dataNascimento,
+        responsavel_nome: c.responsavelNome, whatsapp: c.whatsapp, observacoes: c.observacoes
+      }]).select();
+      if (error) throw error;
+      return data[0];
+    } catch (e) { return handleError(e, 'addCrianca'); }
   },
 
-  // Cultos
   getCultos: async () => {
-    const { data, error } = await supabase
-      .from(TABLES.CULTOS)
-      .select('*')
-      .order('data', { ascending: false });
-    
-    if (error) throw error;
-    return (data || []).map(d => ({
-      id: d.id,
-      tipo: d.tipo,
-      tipoManual: d.tipo_manual,
-      data: d.data,
-      horaInicio: d.hora_inicio,
-      horaFim: d.hora_fim,
-      responsaveis: d.responsaveis,
-      status: d.status
-    } as Culto));
+    try {
+      const { data, error } = await supabase.from(TABLES.CULTOS).select('*').order('data', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        id: d.id, tipo: d.tipo, tipoManual: d.tipo_manual, data: d.data,
+        horaInicio: d.hora_inicio, horaFim: d.hora_fim, responsaveis: d.responsaveis, status: d.status
+      } as Culto));
+    } catch (e) { return handleError(e, 'getCultos'); }
   },
 
   getActiveCulto: async () => {
-    const { data, error } = await supabase
-      .from(TABLES.CULTOS)
-      .select('*')
-      .eq('status', 'ativo')
-      .limit(1)
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) return null;
-    return {
-      id: data.id,
-      tipo: data.tipo,
-      tipoManual: data.tipo_manual,
-      data: data.data,
-      horaInicio: data.hora_inicio,
-      horaFim: data.hora_fim,
-      responsaveis: data.responsaveis,
-      status: data.status
-    } as Culto;
+    try {
+      const { data, error } = await supabase.from(TABLES.CULTOS).select('*').eq('status', 'ativo').limit(1).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        id: data.id, tipo: data.tipo, tipoManual: data.tipo_manual, data: data.data,
+        horaInicio: data.hora_inicio, horaFim: data.hora_fim, responsaveis: data.responsaveis, status: data.status
+      } as Culto;
+    } catch (e) { return handleError(e, 'getActiveCulto'); }
   },
 
   subscribeToActiveCulto: (callback: (culto: Culto | null) => void) => {
-    // Primeiro carrega o estado inicial
-    storageService.getActiveCulto().then(callback).catch(e => console.error("ActiveCulto Sync:", e));
+    storageService.getActiveCulto().then(callback).catch(e => {
+      handleError(e, 'subscribeToActiveCulto initial fetch');
+      callback(null);
+    });
 
-    // Depois escuta mudanças
-    return supabase
-      .channel('public:active_culto')
-      .on('postgres_changes', { event: '*', schema: supabaseConfig.schema, table: TABLES.CULTOS }, (payload) => {
+    const channel = supabase.channel(`${PROJECT_SCHEMA}:active_culto`)
+      .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.CULTOS }, () => {
         storageService.getActiveCulto().then(callback);
-      })
-      .subscribe();
+      }).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 
   addCulto: async (c: Omit<Culto, 'id'>) => {
-    const { data, error } = await supabase
-      .from(TABLES.CULTOS)
-      .insert([{
-        tipo: c.tipo,
-        tipo_manual: c.tipoManual,
-        data: c.data,
-        hora_inicio: c.horaInicio,
-        responsaveis: c.responsaveis,
-        status: 'ativo'
-      }])
-      .select();
-    if (error) throw error;
-    return data[0];
+    try {
+      const { data, error } = await supabase.from(TABLES.CULTOS).insert([{
+        tipo: c.tipo, tipo_manual: c.tipoManual, data: c.data, hora_inicio: c.horaInicio,
+        responsaveis: c.responsaveis, status: 'ativo'
+      }]).select();
+      if (error) throw error;
+      return data[0];
+    } catch (e) { return handleError(e, 'addCulto'); }
   },
 
   updateCulto: async (id: string, updated: Partial<Culto>) => {
-    const payload: any = {};
-    if (updated.status) payload.status = updated.status;
-    if (updated.horaFim) payload.hora_fim = updated.horaFim;
-
-    const { error } = await supabase
-      .from(TABLES.CULTOS)
-      .update(payload)
-      .eq('id', id);
-    if (error) throw error;
+    try {
+      const payload: any = {};
+      if (updated.status) payload.status = updated.status;
+      if (updated.horaFim) payload.hora_fiem = updated.horaFim;
+      const { error } = await supabase.from(TABLES.CULTOS).update(payload).eq('id', id);
+      if (error) throw error;
+    } catch (e) { return handleError(e, 'updateCulto'); }
   },
 
-  // Checkins
   getCheckins: async (idCulto: string) => {
-    const { data, error } = await supabase
-      .from(TABLES.CHECKINS)
-      .select('*')
-      .eq('id_culto', idCulto);
-    
-    if (error) throw error;
-    return (data || []).map(d => ({
-      id: d.id,
-      idCrianca: d.id_crianca,
-      idCulto: d.id_culto,
-      horaEntrada: d.hora_entrada,
-      horaSaida: d.hora_saida,
-      quemRetirou: d.quem_retirou,
-      status: d.status
-    } as CheckIn));
+    try {
+      const { data, error } = await supabase.from(TABLES.CHECKINS).select('*').eq('id_culto', idCulto);
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, horaEntrada: d.hora_entrada,
+        horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, status: d.status
+      } as CheckIn));
+    } catch (e) { return handleError(e, 'getCheckins'); }
   },
 
   getAllCheckins: async () => {
-    const { data, error } = await supabase
-      .from(TABLES.CHECKINS)
-      .select('*');
-    
-    if (error) throw error;
-    return (data || []).map(d => ({
-      id: d.id,
-      idCrianca: d.id_crianca,
-      idCulto: d.id_culto,
-      horaEntrada: d.hora_entrada,
-      horaSaida: d.hora_saida,
-      quemRetirou: d.quem_retirou,
-      status: d.status
-    } as CheckIn));
+    try {
+      const { data, error } = await supabase.from(TABLES.CHECKINS).select('*');
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, horaEntrada: d.hora_entrada,
+        horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, status: d.status
+      } as CheckIn));
+    } catch (e) { return handleError(e, 'getAllCheckins'); }
   },
 
   subscribeToCheckins: (idCulto: string, callback: (checkins: CheckIn[]) => void) => {
-    storageService.getCheckins(idCulto).then(callback).catch(e => console.error("Checkins Sync:", e));
+    storageService.getCheckins(idCulto).then(callback).catch(e => {
+      handleError(e, 'subscribeToCheckins initial fetch');
+      callback([]);
+    });
 
-    return supabase
-      .channel(`public:checkins:${idCulto}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: supabaseConfig.schema, 
-        table: TABLES.CHECKINS,
-        filter: `id_culto=eq.${idCulto}`
-      }, () => {
+    const channel = supabase.channel(`${PROJECT_SCHEMA}:checkins:${idCulto}`)
+      .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.CHECKINS, filter: `id_culto=eq.${idCulto}` }, () => {
         storageService.getCheckins(idCulto).then(callback);
-      })
-      .subscribe();
+      }).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 
   addCheckin: async (c: Omit<CheckIn, 'id'>) => {
-    const { error } = await supabase
-      .from(TABLES.CHECKINS)
-      .insert([{
-        id_crianca: c.idCrianca,
-        id_culto: c.idCulto,
-        hora_entrada: c.horaEntrada,
-        status: 'presente'
+    try {
+      const { error } = await supabase.from(TABLES.CHECKINS).insert([{
+        id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, status: 'presente'
       }]);
-    if (error) throw error;
+      if (error) throw error;
+    } catch (e) { return handleError(e, 'addCheckin'); }
   },
 
   updateCheckin: async (id: string, updated: Partial<CheckIn>) => {
-    const payload: any = {};
-    if (updated.status) payload.status = updated.status;
-    if (updated.horaSaida) payload.hora_saida = updated.horaSaida;
-    if (updated.quemRetirou) payload.quem_retirou = updated.quemRetirou;
-
-    const { error } = await supabase
-      .from(TABLES.CHECKINS)
-      .update(payload)
-      .eq('id', id);
-    if (error) throw error;
+    try {
+      const payload: any = {};
+      if (updated.status) payload.status = updated.status;
+      if (updated.horaSaida) payload.hora_saida = updated.horaSaida;
+      if (updated.quemRetirou) payload.quem_retirou = updated.quemRetirou;
+      const { error } = await supabase.from(TABLES.CHECKINS).update(payload).eq('id', id);
+      if (error) throw error;
+    } catch (e) { return handleError(e, 'updateCheckin'); }
   },
 
-  // PreCheckins
   getPreCheckins: async () => {
-    const { data, error } = await supabase
-      .from(TABLES.PRECHECKINS)
-      .select('*');
-    
-    if (error) throw error;
-    return (data || []).map(d => ({
-      id: d.id,
-      idCrianca: d.id_crianca,
-      idCulto: d.id_culto,
-      codigo: d.codigo,
-      status: d.status,
-      dataHoraPreCheckin: d.data_hora_pre_checkin,
-      dataHoraCheckin: d.data_hora_checkin
-    } as PreCheckIn));
+    try {
+      const { data, error } = await supabase.from(TABLES.PRECHECKINS).select('*');
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, codigo: d.codigo,
+        status: d.status, dataHoraPreCheckin: d.data_hora_pre_checkin, dataHoraCheckin: d.data_hora_checkin
+      } as PreCheckIn));
+    } catch (e) { return handleError(e, 'getPreCheckins'); }
   },
 
   subscribeToPreCheckins: (callback: (pre: PreCheckIn[]) => void) => {
-    storageService.getPreCheckins().then(callback).catch(e => console.error("PreCheckins Sync:", e));
+    storageService.getPreCheckins().then(callback).catch(e => {
+      handleError(e, 'subscribeToPreCheckins initial fetch');
+      callback([]);
+    });
 
-    return supabase
-      .channel('public:pre_checkins')
-      .on('postgres_changes', { event: '*', schema: supabaseConfig.schema, table: TABLES.PRECHECKINS }, () => {
+    const channel = supabase.channel(`${PROJECT_SCHEMA}:pre_checkins`)
+      .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.PRECHECKINS }, () => {
         storageService.getPreCheckins().then(callback);
-      })
-      .subscribe();
+      }).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   },
 
   addPreCheckin: async (p: Omit<PreCheckIn, 'id'>) => {
-    const { error } = await supabase
-      .from(TABLES.PRECHECKINS)
-      .insert([{
-        id_crianca: p.idCrianca,
-        id_culto: p.idCulto,
-        codigo: p.codigo,
-        status: 'pendente'
+    try {
+      const { error } = await supabase.from(TABLES.PRECHECKINS).insert([{
+        id_crianca: p.idCrianca, id_culto: p.idCulto, codigo: p.codigo, status: 'pendente'
       }]);
-    if (error) throw error;
+      if (error) throw error;
+    } catch (e) { return handleError(e, 'addPreCheckin'); }
   },
 
   updatePreCheckin: async (id: string, updated: Partial<PreCheckIn>) => {
-    const payload: any = {};
-    if (updated.status) payload.status = updated.status;
-    if (updated.dataHoraCheckin) payload.data_hora_checkin = updated.dataHoraCheckin;
-
-    const { error } = await supabase
-      .from(TABLES.PRECHECKINS)
-      .update(payload)
-      .eq('id', id);
-    if (error) throw error;
+    try {
+      const payload: any = {};
+      if (updated.status) payload.status = updated.status;
+      if (updated.dataHoraCheckin) payload.data_hora_checkin = updated.dataHoraCheckin;
+      const { error } = await supabase.from(TABLES.PRECHECKINS).update(payload).eq('id', id);
+      if (error) throw error;
+    } catch (e) { return handleError(e, 'updatePreCheckin'); }
   }
 };
