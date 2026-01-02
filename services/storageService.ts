@@ -1,32 +1,16 @@
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
 import { Crianca, Culto, CheckIn, PreCheckIn } from '../types';
 
-const isValidUrl = (url: string) => {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
-
 const PROJECT_SCHEMA = "kids_ieadms";
 
-let supabase: any;
-
-if (isValidUrl(supabaseConfig.url)) {
-  supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
-    db: { 
-      schema: PROJECT_SCHEMA 
-    }
-  });
-} else {
-  supabase = new Proxy({} as any, {
-    get: () => () => Promise.resolve({ data: null, error: new Error("URL do Supabase inválida.") })
-  });
-}
+// Inicialização do cliente Supabase forçando o schema kids_ieadms
+export const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+  db: { 
+    schema: PROJECT_SCHEMA 
+  }
+});
 
 const TABLES = {
   CRIANCAS: 'criancas',
@@ -35,14 +19,15 @@ const TABLES = {
   PRECHECKINS: 'pre_checkins'
 };
 
-// Função auxiliar para tratar erros de Schema não exposto (406)
 const handleError = (error: any, context: string) => {
-  if (error?.message?.includes('406') || error?.code === '406' || error?.status === 406) {
-    console.error(`🚨 ERRO DE CONFIGURAÇÃO (406) em ${context}: O schema '${PROJECT_SCHEMA}' não está exposto no Dashboard do Supabase. Vá em Settings > API > Exposed Schemas e adicione '${PROJECT_SCHEMA}'.`);
+  if (error?.code === '42501' || error?.message?.includes('permission denied')) {
+    console.error(`🔐 ERRO DE PERMISSÃO EM ${context}: Execute o comando GRANT no SQL Editor para o schema '${PROJECT_SCHEMA}'.`);
+  } else if (error?.code === '42P01') {
+    console.error(`❌ TABELA NÃO ENCONTRADA EM ${context}: Verifique se a tabela existe no schema '${PROJECT_SCHEMA}'.`);
   } else {
     console.error(`❌ Erro em ${context}:`, error);
   }
-  throw error;
+  return null;
 };
 
 export const storageService = {
@@ -54,7 +39,7 @@ export const storageService = {
         id: d.id, nome: d.nome, sobrenome: d.sobrenome, dataNascimento: d.data_nascimento,
         responsavelNome: d.responsavel_nome, whatsapp: d.whatsapp, observacoes: d.observacoes, createdAt: d.created_at
       } as Crianca));
-    } catch (e) { return handleError(e, 'getCriancas'); }
+    } catch (e) { handleError(e, 'getCriancas'); return []; }
   },
 
   addCrianca: async (c: Omit<Crianca, 'id'>) => {
@@ -65,7 +50,7 @@ export const storageService = {
       }]).select();
       if (error) throw error;
       return data[0];
-    } catch (e) { return handleError(e, 'addCrianca'); }
+    } catch (e) { handleError(e, 'addCrianca'); throw e; }
   },
 
   getCultos: async () => {
@@ -76,7 +61,7 @@ export const storageService = {
         id: d.id, tipo: d.tipo, tipoManual: d.tipo_manual, data: d.data,
         horaInicio: d.hora_inicio, horaFim: d.hora_fim, responsaveis: d.responsaveis, status: d.status
       } as Culto));
-    } catch (e) { return handleError(e, 'getCultos'); }
+    } catch (e) { handleError(e, 'getCultos'); return []; }
   },
 
   getActiveCulto: async () => {
@@ -88,20 +73,15 @@ export const storageService = {
         id: data.id, tipo: data.tipo, tipoManual: data.tipo_manual, data: data.data,
         horaInicio: data.hora_inicio, horaFim: data.hora_fim, responsaveis: data.responsaveis, status: data.status
       } as Culto;
-    } catch (e) { return handleError(e, 'getActiveCulto'); }
+    } catch (e) { handleError(e, 'getActiveCulto'); return null; }
   },
 
   subscribeToActiveCulto: (callback: (culto: Culto | null) => void) => {
-    storageService.getActiveCulto().then(callback).catch(e => {
-      handleError(e, 'subscribeToActiveCulto initial fetch');
-      callback(null);
-    });
-
-    const channel = supabase.channel(`${PROJECT_SCHEMA}:active_culto`)
+    storageService.getActiveCulto().then(callback);
+    const channel = supabase.channel('active_culto_changes')
       .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.CULTOS }, () => {
         storageService.getActiveCulto().then(callback);
       }).subscribe();
-
     return () => { supabase.removeChannel(channel); };
   },
 
@@ -113,7 +93,7 @@ export const storageService = {
       }]).select();
       if (error) throw error;
       return data[0];
-    } catch (e) { return handleError(e, 'addCulto'); }
+    } catch (e) { handleError(e, 'addCulto'); throw e; }
   },
 
   updateCulto: async (id: string, updated: Partial<Culto>) => {
@@ -123,7 +103,7 @@ export const storageService = {
       if (updated.horaFim) payload.hora_fiem = updated.horaFim;
       const { error } = await supabase.from(TABLES.CULTOS).update(payload).eq('id', id);
       if (error) throw error;
-    } catch (e) { return handleError(e, 'updateCulto'); }
+    } catch (e) { handleError(e, 'updateCulto'); throw e; }
   },
 
   getCheckins: async (idCulto: string) => {
@@ -134,7 +114,7 @@ export const storageService = {
         id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, horaEntrada: d.hora_entrada,
         horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, status: d.status
       } as CheckIn));
-    } catch (e) { return handleError(e, 'getCheckins'); }
+    } catch (e) { handleError(e, 'getCheckins'); return []; }
   },
 
   getAllCheckins: async () => {
@@ -145,20 +125,15 @@ export const storageService = {
         id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, horaEntrada: d.hora_entrada,
         horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, status: d.status
       } as CheckIn));
-    } catch (e) { return handleError(e, 'getAllCheckins'); }
+    } catch (e) { handleError(e, 'getAllCheckins'); return []; }
   },
 
   subscribeToCheckins: (idCulto: string, callback: (checkins: CheckIn[]) => void) => {
-    storageService.getCheckins(idCulto).then(callback).catch(e => {
-      handleError(e, 'subscribeToCheckins initial fetch');
-      callback([]);
-    });
-
-    const channel = supabase.channel(`${PROJECT_SCHEMA}:checkins:${idCulto}`)
+    storageService.getCheckins(idCulto).then(callback);
+    const channel = supabase.channel(`checkins_${idCulto}`)
       .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.CHECKINS, filter: `id_culto=eq.${idCulto}` }, () => {
         storageService.getCheckins(idCulto).then(callback);
       }).subscribe();
-
     return () => { supabase.removeChannel(channel); };
   },
 
@@ -168,7 +143,7 @@ export const storageService = {
         id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, status: 'presente'
       }]);
       if (error) throw error;
-    } catch (e) { return handleError(e, 'addCheckin'); }
+    } catch (e) { handleError(e, 'addCheckin'); throw e; }
   },
 
   updateCheckin: async (id: string, updated: Partial<CheckIn>) => {
@@ -179,7 +154,7 @@ export const storageService = {
       if (updated.quemRetirou) payload.quem_retirou = updated.quemRetirou;
       const { error } = await supabase.from(TABLES.CHECKINS).update(payload).eq('id', id);
       if (error) throw error;
-    } catch (e) { return handleError(e, 'updateCheckin'); }
+    } catch (e) { handleError(e, 'updateCheckin'); throw e; }
   },
 
   getPreCheckins: async () => {
@@ -190,20 +165,15 @@ export const storageService = {
         id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, codigo: d.codigo,
         status: d.status, dataHoraPreCheckin: d.data_hora_pre_checkin, dataHoraCheckin: d.data_hora_checkin
       } as PreCheckIn));
-    } catch (e) { return handleError(e, 'getPreCheckins'); }
+    } catch (e) { handleError(e, 'getPreCheckins'); return []; }
   },
 
   subscribeToPreCheckins: (callback: (pre: PreCheckIn[]) => void) => {
-    storageService.getPreCheckins().then(callback).catch(e => {
-      handleError(e, 'subscribeToPreCheckins initial fetch');
-      callback([]);
-    });
-
-    const channel = supabase.channel(`${PROJECT_SCHEMA}:pre_checkins`)
+    storageService.getPreCheckins().then(callback);
+    const channel = supabase.channel('pre_checkins_changes')
       .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.PRECHECKINS }, () => {
         storageService.getPreCheckins().then(callback);
       }).subscribe();
-
     return () => { supabase.removeChannel(channel); };
   },
 
@@ -213,7 +183,7 @@ export const storageService = {
         id_crianca: p.idCrianca, id_culto: p.idCulto, codigo: p.codigo, status: 'pendente'
       }]);
       if (error) throw error;
-    } catch (e) { return handleError(e, 'addPreCheckin'); }
+    } catch (e) { handleError(e, 'addPreCheckin'); throw e; }
   },
 
   updatePreCheckin: async (id: string, updated: Partial<PreCheckIn>) => {
@@ -223,6 +193,6 @@ export const storageService = {
       if (updated.dataHoraCheckin) payload.data_hora_checkin = updated.dataHoraCheckin;
       const { error } = await supabase.from(TABLES.PRECHECKINS).update(payload).eq('id', id);
       if (error) throw error;
-    } catch (e) { return handleError(e, 'updatePreCheckin'); }
+    } catch (e) { handleError(e, 'updatePreCheckin'); throw e; }
   }
 };
