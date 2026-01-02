@@ -14,13 +14,17 @@ import PreCheckin from './pages/PreCheckin';
 import { storageService } from './services/storageService';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAdmin: boolean }> = ({ children, isAdmin }) => {
-  if (!isAdmin) return <Navigate to="/login" />;
+  if (!isAdmin) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
 const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    return localStorage.getItem('ieadms_v2_auth') === 'true';
+    try {
+      return localStorage.getItem('ieadms_v2_auth') === 'true';
+    } catch (e) {
+      return false;
+    }
   });
 
   const handleLogin = (success: boolean) => {
@@ -31,7 +35,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    if (confirm('Deseja realmente sair do sistema?')) {
+    if (window.confirm('Deseja realmente sair do sistema?')) {
       setIsAdmin(false);
       localStorage.removeItem('ieadms_v2_auth');
     }
@@ -45,7 +49,7 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/pais" element={<PaisArea />} />
           <Route path="/pais/pre-checkin" element={<PreCheckin />} />
-          <Route path="/pais/cadastro" element={<CriancasLista />} /> {/* Reaproveitando o CRM para cadastro público */}
+          <Route path="/pais/cadastro" element={<CriancasLista />} />
 
           {/* Rotas Administrativas */}
           <Route path="/" element={<PrivateRoute isAdmin={isAdmin}><Dashboard /></PrivateRoute>} />
@@ -55,8 +59,8 @@ const App: React.FC = () => {
           <Route path="/criancas" element={<PrivateRoute isAdmin={isAdmin}><CriancasLista /></PrivateRoute>} />
           <Route path="/estatisticas" element={<PrivateRoute isAdmin={isAdmin}><Estatisticas /></PrivateRoute>} />
           
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to={isAdmin ? "/" : "/pais"} />} />
+          {/* Fallback Seguro */}
+          <Route path="*" element={<Navigate to={isAdmin ? "/" : "/pais"} replace />} />
         </Routes>
       </Layout>
     </Router>
