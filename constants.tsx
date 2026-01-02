@@ -18,7 +18,9 @@ import {
   Info,
   Clock,
   LayoutDashboard,
-  X
+  X,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 export const COLORS = {
@@ -54,7 +56,9 @@ export const ICONS = {
   Info: <Info className="w-[18px] h-[18px]" />,
   Clock: <Clock className="w-[18px] h-[18px]" />,
   Dashboard: <LayoutDashboard className="w-[18px] h-[18px]" />,
-  X: <X className="w-[18px] h-[18px]" />
+  X: <X className="w-[18px] h-[18px]" />,
+  Edit: <Pencil className="w-[18px] h-[18px]" />,
+  Trash: <Trash2 className="w-[18px] h-[18px]" />
 };
 
 export const CULTO_TYPES: string[] = [

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
 import { Crianca, Culto, CheckIn, PreCheckIn, NotificacaoAtiva } from '../types';
 
+// O schema deve ser EXATAMENTE o mesmo criado no banco de dados
 const PROJECT_SCHEMA = "kids_ieadms";
 
 export const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
@@ -22,10 +23,9 @@ const TABLES = {
 const handleError = (error: any, context: string) => {
   const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
   
+  // Se for erro de tabela inexistente, apenas avisa no console sem interromper o app
   if (errorMessage.includes("schema cache") || errorMessage.includes("not found")) {
-    console.error(`❌ ERRO CRÍTICO EM ${context}: A tabela '${TABLES.NOTIFICACOES}' não foi encontrada no schema '${PROJECT_SCHEMA}'. Certifique-se de executar o comando CREATE TABLE no SQL Editor do Supabase.`);
-  } else if (error?.code === '42501' || errorMessage?.includes('permission denied')) {
-    console.error(`🔐 ERRO DE PERMISSÃO EM ${context}: Execute o comando GRANT no SQL Editor para o schema '${PROJECT_SCHEMA}'.`);
+    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela '${TABLES.NOTIFICACOES}' não encontrada. Notificações desabilitadas.`);
   } else {
     console.error(`❌ Erro em ${context}:`, errorMessage);
   }
@@ -53,6 +53,28 @@ export const storageService = {
       if (error) throw error;
       return data[0];
     } catch (e) { handleError(e, 'addCrianca'); throw e; }
+  },
+
+  updateCrianca: async (id: string, c: Partial<Crianca>) => {
+    try {
+      const payload: any = {};
+      if (c.nome) payload.nome = c.nome;
+      if (c.sobrenome) payload.sobrenome = c.sobrenome;
+      if (c.dataNascimento) payload.data_nascimento = c.dataNascimento;
+      if (c.responsavelNome) payload.responsavel_nome = c.responsavelNome;
+      if (c.whatsapp) payload.whatsapp = c.whatsapp;
+      if (c.observacoes !== undefined) payload.observacoes = c.observacoes;
+      
+      const { error } = await supabase.from(TABLES.CRIANCAS).update(payload).eq('id', id);
+      if (error) throw error;
+    } catch (e) { handleError(e, 'updateCrianca'); throw e; }
+  },
+
+  deleteCrianca: async (id: string) => {
+    try {
+      const { error } = await supabase.from(TABLES.CRIANCAS).delete().eq('id', id);
+      if (error) throw error;
+    } catch (e) { handleError(e, 'deleteCrianca'); throw e; }
   },
 
   getCultos: async () => {
@@ -218,7 +240,10 @@ export const storageService = {
     try {
       const { error } = await supabase.from(TABLES.NOTIFICACOES).delete().eq('id_culto', idCulto);
       if (error) throw error;
-    } catch (e) { handleError(e, 'clearNotificacoes'); }
+    } catch (e) { 
+      // Silencioso para não travar o encerramento do culto
+      console.warn("Aviso: Falha ao limpar notificações (tabela pode não existir no schema).");
+    }
   },
 
   subscribeToNotificacoes: (idCrianca: string, callback: (n: any) => void) => {
