@@ -1,14 +1,41 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { storageService } from '../services/storageService';
 import { ICONS } from '../constants';
-import { Culto } from '../types';
+import { Culto, CheckIn } from '../types';
 
 const CultosLista: React.FC = () => {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const cultos = storageService.getCultos().reverse();
+  // Fix: Move data fetching to useEffect and state to handle async operations
+  const [cultos, setCultos] = useState<Culto[]>([]);
+  const [allCheckins, setAllCheckins] = useState<CheckIn[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [cultosList, checkinsList] = await Promise.all([
+          storageService.getCultos(),
+          storageService.getAllCheckins()
+        ]);
+        // getCultos already returns ordered by data desc from storageService
+        setCultos(cultosList);
+        setAllCheckins(checkinsList);
+      } catch (error) {
+        console.error("Erro ao carregar histórico:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-20 text-purple-main font-bold">Carregando histórico...</div>;
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -28,7 +55,8 @@ const CultosLista: React.FC = () => {
        <div className="space-y-4">
           {cultos.map(culto => {
             const isExpanded = expandedId === culto.id;
-            const sessionCheckins = storageService.getCheckins().filter(c => c.idCulto === culto.id);
+            // Fix: Use pre-loaded allCheckins state instead of calling async getCheckins() in the loop
+            const sessionCheckins = allCheckins.filter(c => c.idCulto === culto.id);
             const totalKids = sessionCheckins.length;
             const uniqueKids = new Set(sessionCheckins.map(c => c.idCrianca)).size;
 

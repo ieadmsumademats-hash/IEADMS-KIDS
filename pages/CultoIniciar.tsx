@@ -11,17 +11,20 @@ const CultoIniciar: React.FC = () => {
   const [tipoManual, setTipoManual] = useState('');
   const [responsaveis, setResponsaveis] = useState('');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    if (storageService.getActiveCulto()) {
+    const active = await storageService.getActiveCulto();
+    if (active) {
       alert('Já existe um culto ativo. Encerre-o antes de iniciar outro.');
+      setIsSubmitting(false);
       return;
     }
 
     const newCulto = {
-      id: Date.now().toString(),
       tipo,
       tipoManual: tipo === 'Outros' ? tipoManual : undefined,
       data,
@@ -30,8 +33,13 @@ const CultoIniciar: React.FC = () => {
       status: 'ativo' as const
     };
 
-    storageService.addCulto(newCulto);
-    navigate(`/cultos/ativo/${newCulto.id}`);
+    try {
+      const docRef = await storageService.addCulto(newCulto);
+      navigate(`/cultos/ativo/${docRef.id}`);
+    } catch (error) {
+      alert('Erro ao iniciar culto. Tente novamente.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -45,7 +53,7 @@ const CultoIniciar: React.FC = () => {
 
       <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden border-b-[12px] border-yellow-main">
         <div className="bg-purple-main p-10 md:p-14 text-white">
-          <h1 className="text-4xl font-black mb-4 tracking-tighter uppercase">Iniciar Novo Culto</h1>
+          <h1 className="text-4xl font-black mb-4 tracking-tighter uppercase text-white">Iniciar Novo Culto</h1>
           <p className="text-white/70 font-medium text-lg">Defina os detalhes da sessão de hoje para abrir o check-in.</p>
         </div>
 
@@ -90,7 +98,6 @@ const CultoIniciar: React.FC = () => {
               <input
                 type="date"
                 required
-                min={new Date().toISOString().split('T')[0]}
                 value={data}
                 onChange={(e) => setData(e.target.value)}
                 className="w-full bg-gray-light border-2 border-transparent focus:border-purple-main outline-none p-6 rounded-[1.5rem] font-bold text-lg"
@@ -118,9 +125,10 @@ const CultoIniciar: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full bg-yellow-main hover:bg-yellow-secondary text-purple-dark font-black py-8 rounded-[2rem] shadow-2xl transition-all transform hover:-translate-y-1 active:scale-95 text-xl tracking-tight uppercase"
+            disabled={isSubmitting}
+            className="w-full bg-yellow-main hover:bg-yellow-secondary text-purple-dark font-black py-8 rounded-[2rem] shadow-2xl transition-all transform hover:-translate-y-1 active:scale-95 text-xl tracking-tight uppercase disabled:opacity-50"
           >
-            ABRIR CHECK-IN AGORA
+            {isSubmitting ? 'INICIANDO...' : 'ABRIR CHECK-IN AGORA'}
           </button>
         </form>
       </div>

@@ -1,20 +1,37 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { ICONS } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Culto, CheckIn } from '../types';
 
 const Estatisticas: React.FC = () => {
-  const cultos = storageService.getCultos();
-  const kids = storageService.getCriancas();
-  const checkins = storageService.getCheckins();
+  const [data, setData] = useState<{ cultos: Culto[], kidsCount: number, checkins: CheckIn[] } | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const chartData = cultos.slice(-6).map(c => ({
+  useEffect(() => {
+    const load = async () => {
+      const [cultos, kids, checkins] = await Promise.all([
+        storageService.getCultos(),
+        storageService.getCriancas(),
+        storageService.getAllCheckins()
+      ]);
+      setData({ cultos, kidsCount: kids.length, checkins });
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading || !data) {
+    return <div className="text-center py-20 text-purple-main font-bold">Gerando relatórios...</div>;
+  }
+
+  const chartData = data.cultos.slice(0, 6).reverse().map(c => ({
     name: new Date(c.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-    total: checkins.filter(ch => ch.idCulto === c.id).length
+    total: data.checkins.filter(ch => ch.idCulto === c.id).length
   }));
 
-  const avgAttendance = cultos.length > 0 ? (checkins.length / cultos.length).toFixed(1) : '0';
+  const avgAttendance = data.cultos.length > 0 ? (data.checkins.length / data.cultos.length).toFixed(1) : '0';
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
@@ -25,10 +42,10 @@ const Estatisticas: React.FC = () => {
 
        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
-            { label: 'Total Kids', val: kids.length, color: 'text-purple-main', bg: 'bg-purple-main/5' },
-            { label: 'Média/Culto', val: avgAttendance, color: 'text-yellow-main', bg: 'bg-yellow-main/10' },
-            { label: 'Frequência Total', val: checkins.length, color: 'text-green-500', bg: 'bg-green-500/10' },
-            { label: 'Sessões', val: cultos.length, color: 'text-blue-500', bg: 'bg-blue-500/10' }
+            { label: 'Total Kids', val: data.kidsCount, color: 'text-purple-main', bg: 'bg-purple-main/5' },
+            { label: 'Média/Culto', val: avgAttendance, color: 'text-yellow-600', bg: 'bg-yellow-main/10' },
+            { label: 'Frequência Total', val: data.checkins.length, color: 'text-green-500', bg: 'bg-green-500/10' },
+            { label: 'Sessões', val: data.cultos.length, color: 'text-blue-500', bg: 'bg-blue-500/10' }
           ].map((card, i) => (
             <div key={i} className={`${card.bg} p-10 rounded-[2.5rem] border border-transparent hover:border-white transition-all`}>
                <p className="text-[10px] font-black text-gray-text uppercase tracking-widest mb-2">{card.label}</p>
@@ -40,7 +57,7 @@ const Estatisticas: React.FC = () => {
        <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
           <div className="flex items-center gap-4 mb-10">
              <div className="bg-purple-main text-white p-3 rounded-2xl">{ICONS.BarChart}</div>
-             <h3 className="text-2xl font-black text-purple-dark uppercase tracking-tight">Presença nos Últimos 6 Cultos</h3>
+             <h3 className="text-2xl font-black text-purple-dark uppercase tracking-tight text-purple-dark">Presença nos Últimos 6 Cultos</h3>
           </div>
           
           <div className="h-[400px] w-full">

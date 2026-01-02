@@ -1,14 +1,39 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants';
 import { storageService } from '../services/storageService';
+import { Culto } from '../types';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const activeCulto = storageService.getActiveCulto();
-  const kidsCount = storageService.getCriancas().length;
-  const sessionsCount = storageService.getCultos().length;
+  const [activeCulto, setActiveCulto] = useState<Culto | null>(null);
+  const [counts, setCounts] = useState({ kids: 0, sessions: 0, latest: [] as Culto[] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const [kids, cultos] = await Promise.all([
+        storageService.getCriancas(),
+        storageService.getCultos()
+      ]);
+      
+      setCounts({
+        kids: kids.length,
+        sessions: cultos.length,
+        latest: cultos.slice(0, 4)
+      });
+      setLoading(false);
+    };
+
+    loadData();
+    const unsubscribe = storageService.subscribeToActiveCulto(setActiveCulto);
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64 text-purple-main font-bold">Carregando painel...</div>;
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -43,8 +68,7 @@ const Dashboard: React.FC = () => {
             {ICONS.Baby}
           </div>
           <p className="text-gray-text font-black uppercase text-xs tracking-widest mb-1">Crianças Cadastradas</p>
-          <p className="text-5xl font-black text-purple-dark">{kidsCount}</p>
-          <div className="absolute -right-6 -bottom-6 text-purple-main/5 transform -rotate-12">{ICONS.Baby}</div>
+          <p className="text-5xl font-black text-purple-dark">{counts.kids}</p>
         </div>
 
         <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 relative overflow-hidden group">
@@ -52,8 +76,7 @@ const Dashboard: React.FC = () => {
             {ICONS.Calendar}
           </div>
           <p className="text-gray-text font-black uppercase text-xs tracking-widest mb-1">Total de Cultos</p>
-          <p className="text-5xl font-black text-purple-dark">{sessionsCount}</p>
-          <div className="absolute -right-6 -bottom-6 text-yellow-main/5 transform -rotate-12">{ICONS.Calendar}</div>
+          <p className="text-5xl font-black text-purple-dark">{counts.sessions}</p>
         </div>
 
         <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col justify-center">
@@ -61,7 +84,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-gray-light p-4 rounded-2xl flex items-center gap-3 border-2 border-dashed border-gray-200">
             <div className="bg-white p-3 rounded-xl shadow-sm">{ICONS.QrCode}</div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Link de Cadastro</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Portal do Responsável</p>
               <p className="text-sm font-bold text-purple-main truncate">/pais</p>
             </div>
           </div>
@@ -82,7 +105,7 @@ const Dashboard: React.FC = () => {
           </div>
           
           <div className="space-y-4">
-            {storageService.getCultos().slice(-4).reverse().map(culto => (
+            {counts.latest.map(culto => (
               <div key={culto.id} className="flex items-center justify-between p-6 bg-gray-light rounded-[2rem] hover:bg-gray-100 transition-colors cursor-pointer group">
                 <div className="flex items-center gap-5">
                   <div className="bg-white p-4 rounded-2xl shadow-sm text-purple-main group-hover:scale-110 transition-transform">
@@ -100,36 +123,19 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
             ))}
-            {sessionsCount === 0 && (
-              <div className="text-center py-16">
-                <div className="text-gray-200 mb-4 scale-150 inline-block">{ICONS.Calendar}</div>
-                <p className="text-gray-text font-bold italic">Nenhum culto registrado ainda.</p>
-              </div>
-            )}
           </div>
         </section>
 
         <section className="lg:col-span-4 space-y-8">
           <div className="bg-purple-main p-10 rounded-[2.5rem] shadow-2xl text-white relative overflow-hidden">
-            <h2 className="kids-font text-3xl font-bold mb-6">Aviso Rápido</h2>
+            <h2 className="kids-font text-3xl font-bold mb-6">Nuvem IEADMS</h2>
             <p className="text-white/80 font-medium leading-relaxed mb-8">
-              O pré-check-in gera um código KIDS-#### que expira ao fim do culto. Utilize o buscador por código para agilizar a entrada!
+              Todos os dados estão sendo sincronizados com o banco de dados oficial em tempo real. Segurança total para os pequeninos.
             </p>
             <div className="bg-white/10 p-5 rounded-2xl border border-white/10 flex items-center gap-4">
-               <div className="bg-yellow-main text-purple-dark p-3 rounded-xl">{ICONS.Info}</div>
-               <p className="text-xs font-bold leading-tight uppercase tracking-tight">Sempre verifique o WhatsApp do responsável.</p>
+               <div className="bg-yellow-main text-purple-dark p-3 rounded-xl">{ICONS.CheckCircle}</div>
+               <p className="text-xs font-bold leading-tight uppercase tracking-tight">Sincronização Ativa e Segura.</p>
             </div>
-            <div className="absolute top-[-20px] right-[-20px] bg-white/5 w-32 h-32 rounded-full" />
-          </div>
-
-          <div className="bg-yellow-main p-10 rounded-[2.5rem] shadow-xl">
-             <h3 className="text-purple-dark font-black text-lg mb-4 uppercase tracking-tighter">Próximo Passo?</h3>
-             <button 
-              onClick={() => navigate('/criancas')}
-              className="w-full bg-purple-dark text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:scale-[1.02] transition-transform"
-             >
-                {ICONS.Plus} CADASTRAR CRIANÇA
-             </button>
           </div>
         </section>
       </div>

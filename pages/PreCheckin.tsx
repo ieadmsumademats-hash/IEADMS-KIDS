@@ -1,27 +1,45 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ICONS } from '../constants';
 import { storageService } from '../services/storageService';
-import { PreCheckIn } from '../types';
+import { PreCheckIn, Crianca, Culto } from '../types';
 
 const PreCheckin: React.FC = () => {
   const navigate = useNavigate();
-  const activeCulto = storageService.getActiveCulto();
+  const [activeCulto, setActiveCulto] = useState<Culto | null>(null);
+  const [kids, setKids] = useState<Crianca[]>([]);
+  const [preCheckins, setPreCheckins] = useState<PreCheckIn[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [search, setSearch] = useState('');
   const [step, setStep] = useState(1);
   const [generated, setGenerated] = useState<string | null>(null);
 
-  const kids = storageService.getCriancas();
+  useEffect(() => {
+    const loadData = async () => {
+      const [culto, allKids, allPres] = await Promise.all([
+        storageService.getActiveCulto(),
+        storageService.getCriancas(),
+        storageService.getPreCheckins()
+      ]);
+      setActiveCulto(culto);
+      setKids(allKids);
+      setPreCheckins(allPres);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
+
   const filtered = search.length > 1 
     ? kids.filter(k => (k.nome + ' ' + k.sobrenome).toLowerCase().includes(search.toLowerCase()))
     : [];
 
-  const handleSelect = (kidId: string) => {
+  const handleSelect = async (kidId: string) => {
     if (!activeCulto) return;
 
     // Verificar se já existe precheckin pendente
-    const existing = storageService.getPreCheckins().find(p => p.idCrianca === kidId && p.idCulto === activeCulto.id && p.status === 'pendente');
+    const existing = preCheckins.find(p => p.idCrianca === kidId && p.idCulto === activeCulto.id && p.status === 'pendente');
     
     if (existing) {
       setGenerated(existing.codigo);
@@ -30,8 +48,7 @@ const PreCheckin: React.FC = () => {
     }
 
     const code = `KIDS-${Math.floor(1000 + Math.random() * 8999)}`;
-    const newPre: PreCheckIn = {
-      id: Date.now().toString(),
+    const newPre: Omit<PreCheckIn, 'id'> = {
       idCrianca: kidId,
       idCulto: activeCulto.id,
       codigo: code,
@@ -39,12 +56,12 @@ const PreCheckin: React.FC = () => {
       dataHoraPreCheckin: new Date().toISOString()
     };
 
-    storageService.addPreCheckin(newPre);
+    await storageService.addPreCheckin(newPre);
     setGenerated(code);
     setStep(2);
   };
 
-  // Fixed: Imported Navigate from react-router-dom to fix 'Cannot find name Navigate' error
+  if (loading) return <div className="text-center py-20 text-purple-main font-bold">Carregando...</div>;
   if (!activeCulto) return <Navigate to="/pais" />;
 
   return (
@@ -59,7 +76,7 @@ const PreCheckin: React.FC = () => {
 
         {step === 1 ? (
           <div className="bg-white rounded-[3rem] p-10 shadow-2xl border-b-8 border-purple-main animate-in slide-in-from-right duration-500">
-             <h2 className="text-3xl font-black text-purple-dark mb-2 uppercase tracking-tight">Identifique seu Filho</h2>
+             <h2 className="text-3xl font-black text-purple-dark mb-2 uppercase tracking-tight text-purple-dark">Identifique seu Filho</h2>
              <p className="text-gray-text font-medium mb-10">Busque pelo nome cadastrado para gerar o código de acesso.</p>
              
              <div className="relative mb-8">
@@ -82,7 +99,7 @@ const PreCheckin: React.FC = () => {
                   >
                     <div className="text-left">
                        <p className="font-black text-lg group-hover:text-white text-purple-dark">{k.nome} {k.sobrenome}</p>
-                       <p className="text-[10px] font-black uppercase opacity-60 tracking-widest">{k.responsavelNome}</p>
+                       <p className="text-[10px] font-black uppercase opacity-60 tracking-widest group-hover:text-white">{k.responsavelNome}</p>
                     </div>
                     <div className="bg-white p-3 rounded-2xl text-purple-main shadow-md">{ICONS.ChevronRight}</div>
                   </button>
@@ -108,7 +125,7 @@ const PreCheckin: React.FC = () => {
                 {ICONS.CheckCircle}
              </div>
 
-             <h2 className="text-3xl font-black text-purple-dark mb-4 uppercase">PRONTO!</h2>
+             <h2 className="text-3xl font-black text-purple-dark mb-4 uppercase text-purple-dark">PRONTO!</h2>
              <p className="text-gray-text font-bold mb-10 text-lg leading-tight px-4">
                 Apresente este código na recepção do Kids para confirmar a entrada:
              </p>

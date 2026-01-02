@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ICONS, COLORS } from '../constants';
+import { ICONS } from '../constants';
 import { storageService } from '../services/storageService';
+import { Culto } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,7 +14,16 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const activeCulto = storageService.getActiveCulto();
+  const [activeCulto, setActiveCulto] = useState<Culto | null>(null);
+
+  useEffect(() => {
+    if (isAdmin) {
+      const unsubscribe = storageService.subscribeToActiveCulto((culto) => {
+        setActiveCulto(culto);
+      });
+      return () => unsubscribe();
+    }
+  }, [isAdmin]);
 
   const menuItems = [
     { label: 'Painel', path: '/', icon: ICONS.Dashboard },
@@ -22,14 +32,12 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
     { label: 'Estatísticas', path: '/estatisticas', icon: ICONS.BarChart },
   ];
 
-  // Se for rota de pais ou login, layout simplificado
   if (!isAdmin || location.pathname.startsWith('/pais') || location.pathname === '/login') {
     return <div className="min-h-screen bg-gray-light font-sans">{children}</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-light flex flex-col md:flex-row">
-      {/* Sidebar Desktop */}
       <aside className="hidden md:flex flex-col w-72 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
         <div className="p-8 border-b border-purple-main/20">
           <div className="flex items-center gap-4">
@@ -88,7 +96,6 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         </button>
       </aside>
 
-      {/* Header Mobile */}
       <header className="md:hidden bg-purple-dark text-white p-5 flex items-center justify-between sticky top-0 z-50 shadow-xl">
         <div className="flex items-center gap-3">
           <div className="bg-white p-1 rounded-lg">
@@ -99,12 +106,10 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         <button onClick={onLogout} className="text-red-400 p-2">{ICONS.LogOut}</button>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 pb-24 md:pb-12 max-w-[1400px] mx-auto w-full">
         {children}
       </main>
 
-      {/* Navigation Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-3 px-6 z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
