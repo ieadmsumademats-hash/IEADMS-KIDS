@@ -3,7 +3,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>IEADMS Kids - Controle de Fluxo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,6 +39,10 @@
             color: #7E3FA0;
             font-size: 1.5rem;
             font-weight: bold;
+        }
+        /* Fix for iOS date input sizing */
+        input[type="date"] {
+            min-height: 2.5rem;
         }
     </style>
     <script>

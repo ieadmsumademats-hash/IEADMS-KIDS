@@ -4,6 +4,17 @@ import { storageService } from '../services/storageService';
 import { ICONS } from '../constants';
 import { Crianca } from '../types';
 
+const formatPhone = (value: string) => {
+  if (!value) return value;
+  const phoneNumber = value.replace(/[^\d]/g, '');
+  const phoneNumberLength = phoneNumber.length;
+  if (phoneNumberLength < 3) return phoneNumber;
+  if (phoneNumberLength < 7) {
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+  }
+  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+};
+
 const CriancasLista: React.FC = () => {
   const [kids, setKids] = useState<Crianca[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +95,7 @@ const CriancasLista: React.FC = () => {
                     
                     <div className="flex items-center gap-3">
                        <a 
-                        href={`https://wa.me/${kid.whatsapp}`} 
+                        href={`https://wa.me/${kid.whatsapp.replace(/[^\d]/g, '')}`} 
                         target="_blank" 
                         className="bg-green-500 text-white p-2.5 rounded-xl shadow-lg hover:bg-green-600 transition-colors"
                        >
@@ -95,6 +106,7 @@ const CriancasLista: React.FC = () => {
                           <span className="text-xs font-black text-gray-700">{new Date().getFullYear() - new Date(kid.dataNascimento).getFullYear()} anos</span>
                        </div>
                     </div>
+                    <p className="mt-3 text-[10px] font-black text-gray-400">{formatPhone(kid.whatsapp)}</p>
                  </div>
               </div>
             ))}
@@ -128,7 +140,7 @@ const CriancasLista: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-gray-400 px-1">WhatsApp</label>
-                    <input required placeholder="67999999999" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm" />
+                    <input required placeholder="(67) 99999-9999" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: formatPhone(e.target.value)})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-gray-400 px-1">Observações Médicas</label>

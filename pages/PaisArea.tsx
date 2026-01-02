@@ -68,7 +68,7 @@ const PaisArea: React.FC = () => {
             className="w-full group relative overflow-hidden p-6 rounded-[2rem] text-left transition-all transform active:scale-95 shadow-xl flex items-center justify-between bg-white border-b-6 border-yellow-main"
           >
             <div className="relative z-10 flex-1">
-              <h2 className="text-2xl font-black text-purple-dark mb-1 uppercase tracking-tighter">CRIAR CONTA</h2>
+              <h2 className="text-2xl font-black text-purple-dark mb-1 uppercase tracking-tighter">CADASTRAR CRIANÇA</h2>
               <p className="text-xs font-bold text-gray-text">Primeira vez conosco? Cadastre aqui.</p>
             </div>
             <div className="bg-yellow-main text-purple-dark p-4 rounded-2xl relative z-10">{ICONS.Plus}</div>

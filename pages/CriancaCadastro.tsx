@@ -5,6 +5,17 @@ import { ICONS } from '../constants';
 import { storageService } from '../services/storageService';
 import { Crianca } from '../types';
 
+const formatPhone = (value: string) => {
+  if (!value) return value;
+  const phoneNumber = value.replace(/[^\d]/g, '');
+  const phoneNumberLength = phoneNumber.length;
+  if (phoneNumberLength < 3) return phoneNumber;
+  if (phoneNumberLength < 7) {
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+  }
+  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+};
+
 const CriancaCadastro: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -12,6 +23,11 @@ const CriancaCadastro: React.FC = () => {
   const [form, setForm] = useState({
     nome: '', sobrenome: '', dataNascimento: '', responsavelNome: '', whatsapp: '', observacoes: ''
   });
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatPhone(e.target.value);
+    setForm({ ...form, whatsapp: formattedValue });
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +95,7 @@ const CriancaCadastro: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">Nascimento</label>
-                <input required type="date" value={form.dataNascimento} onChange={e => setForm({...form, dataNascimento: e.target.value})} className="w-full bg-gray-light p-3.5 rounded-xl font-bold border-2 border-transparent focus:border-purple-main outline-none text-sm" />
+                <input required type="date" value={form.dataNascimento} onChange={e => setForm({...form, dataNascimento: e.target.value})} className="w-full bg-gray-light p-3.5 rounded-xl font-bold border-2 border-transparent focus:border-purple-main outline-none text-sm appearance-none" style={{ minWidth: '100%' }} />
               </div>
               <div>
                 <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">Responsável</label>
@@ -89,7 +105,7 @@ const CriancaCadastro: React.FC = () => {
 
             <div>
               <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">WhatsApp</label>
-              <input required type="tel" value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className="w-full bg-gray-light p-3.5 rounded-xl font-bold border-2 border-transparent focus:border-purple-main outline-none text-sm" placeholder="67999999999" />
+              <input required type="tel" value={form.whatsapp} onChange={handlePhoneChange} className="w-full bg-gray-light p-3.5 rounded-xl font-bold border-2 border-transparent focus:border-purple-main outline-none text-sm" placeholder="(67) 99999-9999" />
             </div>
 
             <div>

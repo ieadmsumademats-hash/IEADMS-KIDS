@@ -5,6 +5,17 @@ import { ICONS } from '../constants';
 import { storageService } from '../services/storageService';
 import { Crianca, CheckIn, Culto, PreCheckIn } from '../types';
 
+const formatPhone = (value: string) => {
+  if (!value) return value;
+  const phoneNumber = value.replace(/[^\d]/g, '');
+  const phoneNumberLength = phoneNumber.length;
+  if (phoneNumberLength < 3) return phoneNumber;
+  if (phoneNumberLength < 7) {
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+  }
+  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+};
+
 const CultoAtivo: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -15,7 +26,7 @@ const CultoAtivo: React.FC = () => {
   const [preCheckins, setPreCheckins] = useState<PreCheckIn[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [codeQuery, setCodeQuery] = useState('');
+  const [codeQuery, setCodeQuery] = useState('KIDS-');
   const [showCheckout, setShowCheckout] = useState<CheckIn | null>(null);
   const [checkoutName, setCheckoutName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -65,6 +76,14 @@ const CultoAtivo: React.FC = () => {
     setTimeout(() => window.print(), 500);
   };
 
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.toUpperCase();
+    if (!val.startsWith('KIDS-')) {
+      val = 'KIDS-' + val.replace('KIDS-', '');
+    }
+    setCodeQuery(val);
+  };
+
   const handleManualCheckin = async (kid: Crianca) => {
     if (activeCheckins.some(c => c.idCrianca === kid.id)) {
       alert(`${kid.nome} já está presente.`);
@@ -109,7 +128,7 @@ const CultoAtivo: React.FC = () => {
     if (kid) {
       await handleManualCheckin(kid);
       await storageService.updatePreCheckin(pre.id, { status: 'confirmado', dataHoraCheckin: new Date().toISOString() });
-      setCodeQuery('');
+      setCodeQuery('KIDS-');
     }
   };
 
@@ -162,19 +181,19 @@ const CultoAtivo: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-yellow-main p-7 rounded-[2rem] shadow-lg">
-            <h2 className="text-base font-black text-purple-dark mb-4 uppercase flex items-center gap-3">
+          <div className="bg-yellow-main p-7 rounded-[2rem] shadow-lg flex flex-col items-center">
+            <h2 className="w-full text-base font-black text-purple-dark mb-4 uppercase flex items-center gap-3">
               {ICONS.QrCode} Confirmar Código
             </h2>
-            <div className="flex gap-3">
+            <div className="flex gap-2 w-full">
               <input 
                 type="text" 
                 placeholder="EX: KIDS-1234"
                 value={codeQuery}
-                onChange={(e) => setCodeQuery(e.target.value)}
-                className="flex-1 p-4 rounded-xl font-black text-xl tracking-widest uppercase outline-none focus:ring-4 focus:ring-purple-main/20"
+                onChange={handleCodeChange}
+                className="flex-1 min-w-0 p-4 rounded-xl font-black text-xl tracking-widest uppercase outline-none focus:ring-4 focus:ring-purple-main/20"
               />
-              <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-6 rounded-xl font-black text-sm hover:bg-purple-main transition-colors uppercase">OK</button>
+              <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-5 rounded-xl font-black text-sm hover:bg-purple-main transition-colors uppercase whitespace-nowrap">OK</button>
             </div>
           </div>
 
@@ -250,7 +269,7 @@ const CultoAtivo: React.FC = () => {
                 <input required type="date" value={newKidForm.dataNascimento} onChange={e => setNewKidForm({...newKidForm, dataNascimento: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
                 <input required placeholder="Responsável" value={newKidForm.responsavelNome} onChange={e => setNewKidForm({...newKidForm, responsavelNome: e.target.value})} className="bg-gray-light p-4 rounded-xl font-bold text-sm" />
               </div>
-              <input required placeholder="WhatsApp (DDD + Número)" value={newKidForm.whatsapp} onChange={e => setNewKidForm({...newKidForm, whatsapp: e.target.value})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm" />
+              <input required placeholder="WhatsApp (DDD + Número)" value={newKidForm.whatsapp} onChange={e => setNewKidForm({...newKidForm, whatsapp: formatPhone(e.target.value)})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm" />
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <button type="button" onClick={() => setIsAddingNew(false)} className="bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest">CANCELAR</button>
                 <button type="submit" className="bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase tracking-widest">SALVAR E ENTRAR</button>
