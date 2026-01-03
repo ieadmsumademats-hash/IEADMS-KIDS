@@ -43,20 +43,52 @@ const PreCheckin: React.FC = () => {
     }
   }, []);
 
+  // Listener para notificações quando uma criança é selecionada
+  useEffect(() => {
+    if (selectedKidId && notificationsEnabled) {
+      const unsub = storageService.subscribeToNotificacoes(selectedKidId, (n) => {
+        if (window.Notification && Notification.permission === 'granted') {
+          new Notification('IEADMS Kids', {
+            body: n.mensagem,
+            icon: 'https://api.dicebear.com/7.x/shapes/svg?seed=kids'
+          });
+          
+          if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200, 100, 500]);
+          }
+        }
+      });
+      return () => unsub();
+    }
+  }, [selectedKidId, notificationsEnabled]);
+
   const requestNotificationPermission = async () => {
+    // Detectar se é iPhone
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
+
     if (!('Notification' in window)) {
-      alert('Atenção: Seu celular não suporta alertas automáticos.');
+      if (isIOS && !isStandalone) {
+        alert('📱 PARA IPHONE: Toque no ícone de "Compartilhar" (quadrado com seta) e depois em "ADICIONAR À TELA DE INÍCIO". Só assim o alerta poderá tocar no seu celular!');
+      } else {
+        alert('Este navegador não suporta alertas automáticos. Fique atento ao WhatsApp, avisaremos por lá também!');
+      }
       return;
     }
+
     if (Notification.permission === 'denied') {
-      alert('Acesso bloqueado. Autorize as notificações no seu navegador.');
+      alert('Você bloqueou os avisos. Toque no ícone de "Cadeado" lá em cima ao lado do site e mude "Notificações" para "Permitir".');
       return;
     }
+
     try {
       const permission = await Notification.requestPermission();
-      if (permission === 'granted') setNotificationsEnabled(true);
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        alert('✅ SUCESSO! Agora seu celular vai apitar quando seu filho estiver pronto.');
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao pedir permissão:", err);
     }
   };
 
@@ -68,16 +100,13 @@ const PreCheckin: React.FC = () => {
     if (!activeCulto) return;
     
     const kidName = kids.find(k => k.id === kidId)?.nome || "A criança";
-
-    // TRAVA 1: Verificar se a criança já está PRESENTE (Check-in já confirmado)
     const alreadyPresent = currentCheckins.some(c => c.idCrianca === kidId && c.status === 'presente');
     if (alreadyPresent) {
-      alert(`${kidName} já está no Culto Kids! Aproveite o culto.`);
+      alert(`${kidName} já está no Culto Kids!`);
       setSearch('');
       return;
     }
 
-    // TRAVA 2: Verificar se já existe um Pré-Check-in pendente para este culto
     const existing = preCheckins.find(p => p.idCrianca === kidId && p.idCulto === activeCulto.id && p.status === 'pendente');
     if (existing) {
       setSelectedKidId(kidId);
@@ -86,7 +115,6 @@ const PreCheckin: React.FC = () => {
       return;
     }
 
-    // Se passou pelas travas, gera novo código
     const code = `KIDS-${Math.floor(1000 + Math.random() * 8999)}`;
     const newPre: Omit<PreCheckIn, 'id'> = {
       idCrianca: kidId,
@@ -144,10 +172,23 @@ const PreCheckin: React.FC = () => {
              </div>
              <h2 className="text-2xl font-black text-purple-dark mb-2 uppercase">PRONTO!</h2>
              
-             {!notificationsEnabled && (
-                <button onClick={requestNotificationPermission} className="bg-yellow-main border-4 border-yellow-secondary text-purple-dark p-5 rounded-[2rem] mb-8 text-xs font-black uppercase tracking-tight w-full animate-pulse shadow-[0_0_20px_rgba(255,200,0,0.4)]">
-                  🔔 TOQUE AQUI PARA ATIVAR O AVISO DE CHAMADA NO SEU CELULAR!
-                </button>
+             {!notificationsEnabled ? (
+                <div className="relative group mb-8">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-yellow-main via-white to-yellow-main rounded-[2rem] blur opacity-75 group-hover:opacity-100 animate-pulse transition duration-1000 group-hover:duration-200"></div>
+                  <button 
+                    onClick={requestNotificationPermission} 
+                    className="relative bg-yellow-main border-4 border-yellow-secondary text-purple-dark p-6 rounded-[2rem] text-xs font-black uppercase tracking-tight w-full shadow-2xl transform active:scale-95 transition-all flex flex-col items-center gap-2"
+                  >
+                    <span className="text-2xl animate-bounce">🔔</span>
+                    <span>CLIQUE AQUI PARA ATIVAR O AVISO DE CHAMADA NO SEU CELULAR!</span>
+                    <span className="text-[8px] opacity-70">(O celular apita quando seu filho terminar)</span>
+                  </button>
+                </div>
+             ) : (
+                <div className="bg-green-50 border-2 border-green-200 text-green-700 p-4 rounded-2xl mb-8 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                   Avisos de Chamada Ativados
+                </div>
              )}
 
              <p className="text-gray-text font-bold mb-8 text-sm leading-tight px-2">Apresente este código na recepção:</p>
