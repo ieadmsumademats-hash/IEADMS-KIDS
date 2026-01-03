@@ -38,33 +38,33 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gray-light flex flex-col md:flex-row">
-      <aside className="hidden md:flex flex-col w-60 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
-        <div className="p-5 border-b border-purple-main/20">
+      <aside className="hidden md:flex flex-col w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
+        <div className="p-6 border-b border-purple-main/20">
           <div className="flex items-center gap-3">
-            <div className="bg-white p-1.5 rounded-lg shadow-lg">
+            <div className="bg-white p-2 rounded-lg shadow-lg">
               <img src="https://api.dicebear.com/7.x/shapes/svg?seed=ieadms" alt="Logo" className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="kids-font text-lg font-bold leading-tight text-white">IEADMS</h1>
-              <span className="text-yellow-main font-black tracking-widest text-[9px] uppercase">Culto Kids</span>
+              <h1 className="kids-font text-xl font-bold leading-tight text-white">IEADMS</h1>
+              <span className="text-yellow-main font-black tracking-widest text-[10px] uppercase">Culto Kids</span>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-1">
+        <nav className="flex-1 py-6 px-4 space-y-2">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 font-bold text-xs ${
+                className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm lg:text-base ${
                   isActive 
-                    ? 'bg-purple-main text-white shadow-lg' 
+                    ? 'bg-purple-main text-white shadow-lg scale-[1.02]' 
                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <span className={isActive ? 'text-yellow-main' : 'opacity-80 scale-90'}>{item.icon}</span>
+                <span className={`${isActive ? 'text-yellow-main' : 'opacity-80'} transition-transform duration-300`}>{item.icon}</span>
                 {item.label}
               </Link>
             );

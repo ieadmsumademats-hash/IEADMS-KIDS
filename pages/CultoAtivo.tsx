@@ -111,21 +111,20 @@ const CultoAtivo: React.FC = () => {
   const handleCodeCheckin = async () => {
     const code = codeQuery.trim().toUpperCase();
     
-    // Busca o pré-checkin ignorando erros de prefixo ou espaços
-    const pre = preCheckins.find(p => 
-      p.codigo.toUpperCase() === code && 
-      p.status === 'pendente' && 
-      p.idCulto === id
-    );
+    const pre = preCheckins.find(p => {
+        const matchCode = p.codigo.trim().toUpperCase() === code;
+        const matchStatus = p.status === 'pendente';
+        const matchCulto = String(p.idCulto) === String(id);
+        return matchCode && matchStatus && matchCulto;
+    });
     
     if (!pre) { 
-      alert('Código não encontrado ou já confirmado. Verifique se o código está correto.'); 
+      alert('Código não encontrado ou já confirmado. Verifique se o código está correto para este culto.'); 
       return; 
     }
 
     const kid = allCriancas.find(k => k.id === pre.idCrianca);
     if (kid) {
-      // Se já estiver na sala por check-in manual prévio, apenas confirmamos o código
       if (activeCheckins.some(c => c.idCrianca === kid.id)) {
         await storageService.updatePreCheckin(pre.id, { status: 'confirmado' });
         setCodeQuery('KIDS-');
@@ -181,7 +180,6 @@ const CultoAtivo: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-8 -mt-2">
-      {/* Impressão Oculta */}
       <div id="print-section" className="hidden flex-col items-center justify-center text-center p-4">
         {labelData && (
           <div className="flex flex-col items-center w-full">
@@ -194,7 +192,6 @@ const CultoAtivo: React.FC = () => {
       </div>
 
       <div className="print:hidden space-y-4">
-        {/* Header Compacto */}
         <div className="bg-white p-3 px-5 rounded-2xl shadow-sm border-l-8 border-green-500 flex items-center justify-between sticky top-0 z-30">
             <div className="flex items-center gap-3">
               <div className="bg-green-50 px-2 py-0.5 rounded text-[9px] font-black text-green-600 uppercase">ATIVO</div>
@@ -215,7 +212,6 @@ const CultoAtivo: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Coluna Lateral */}
             <div className="lg:col-span-4 space-y-4">
               <div className="bg-yellow-main p-4 rounded-2xl shadow-sm">
                   <h2 className="text-[10px] font-black text-purple-dark mb-2 uppercase flex items-center gap-2">
@@ -275,7 +271,6 @@ const CultoAtivo: React.FC = () => {
               </div>
             </div>
 
-            {/* Coluna Principal */}
             <div className="lg:col-span-8">
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
                   <h2 className="text-[10px] font-black text-purple-dark mb-4 uppercase flex items-center gap-2">
@@ -297,15 +292,24 @@ const CultoAtivo: React.FC = () => {
                             </div>
                             
                             <div className="flex items-center gap-1">
-                                <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-1.5 bg-white rounded-lg shadow-sm">
+                                <a 
+                                    href={`https://wa.me/55${kid?.whatsapp.replace(/[^\d]/g, '')}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-white p-1.5 bg-green-500 rounded-lg shadow-sm active:scale-90 transition-transform flex items-center justify-center"
+                                    title="WhatsApp dos Pais"
+                                >
+                                    {ICONS.WhatsApp}
+                                </a>
+                                <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-1.5 bg-white rounded-lg shadow-sm active:scale-90 transition-transform">
                                   {ICONS.QrCode}
                                 </button>
                                 {hasPreCheckin && (
-                                    <button onClick={() => handleSendNotification(kid!.id)} className="text-purple-dark p-1.5 bg-yellow-main rounded-lg shadow-sm">
+                                    <button onClick={() => handleSendNotification(kid!.id)} className="text-purple-dark p-1.5 bg-yellow-main rounded-lg shadow-sm active:scale-90 transition-transform">
                                       {ICONS.Info}
                                     </button>
                                 )}
-                                <button onClick={() => setShowCheckout(check)} className="text-white p-1.5 bg-red-500 rounded-lg shadow-sm">
+                                <button onClick={() => setShowCheckout(check)} className="text-white p-1.5 bg-red-500 rounded-lg shadow-sm active:scale-90 transition-transform">
                                     {ICONS.X}
                                 </button>
                             </div>
@@ -317,7 +321,6 @@ const CultoAtivo: React.FC = () => {
             </div>
         </div>
 
-        {/* Modal Checkout */}
         {showCheckout && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center">
@@ -331,7 +334,6 @@ const CultoAtivo: React.FC = () => {
             </div>
         )}
 
-        {/* Modal Encerrar */}
         {showEndConfirm && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-red-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center">

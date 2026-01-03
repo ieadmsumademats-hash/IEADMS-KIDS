@@ -134,12 +134,12 @@ const CriancasLista: React.FC = () => {
                     
                     <div className="flex items-center gap-2">
                        <a 
-                        href={`https://wa.me/${kid.whatsapp.replace(/[^\d]/g, '')}`} 
+                        href={`https://wa.me/55${kid.whatsapp.replace(/[^\d]/g, '')}`} 
                         target="_blank" 
                         className="bg-green-500 text-white p-2.5 rounded-xl shadow-lg hover:bg-green-600 transition-colors"
                         title="Abrir WhatsApp"
                        >
-                          {ICONS.Phone}
+                          {ICONS.WhatsApp}
                        </a>
                        
                        <button 
