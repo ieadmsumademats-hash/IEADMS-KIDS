@@ -150,8 +150,24 @@ const CultoAtivo: React.FC = () => {
         setShowEndConfirm(false);
         return; 
     }
-    await storageService.updateCulto(id!, { status: 'encerrado', horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) });
-    navigate('/cultos');
+    
+    try {
+      // 1. Limpar Notificações Ativas do Culto
+      await storageService.clearNotificacoes(id!);
+      
+      // 2. Limpar Pré-Checkins do Culto (Evita acúmulo de lixo no banco)
+      await storageService.clearPreCheckins(id!);
+
+      // 3. Encerrar o Culto Oficialmente
+      await storageService.updateCulto(id!, { 
+        status: 'encerrado', 
+        horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
+      });
+      
+      navigate('/cultos');
+    } catch (error) {
+      alert("Erro ao encerrar culto. Verifique sua conexão.");
+    }
   };
 
   const filteredKids = searchTerm.length > 1 

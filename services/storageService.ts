@@ -22,7 +22,7 @@ const TABLES = {
 const handleError = (error: any, context: string) => {
   const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
   if (errorMessage.includes("schema cache") || errorMessage.includes("not found")) {
-    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela '${TABLES.NOTIFICACOES}' não encontrada.`);
+    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela '${context}' não encontrada.`);
   } else {
     console.error(`❌ Erro em ${context}:`, errorMessage);
   }
@@ -159,7 +159,6 @@ export const storageService = {
 
   addCheckin: async (c: Omit<CheckIn, 'id'>) => {
     try {
-      // Camada extra de proteção: verifica se já existe registro "presente" para esta criança NESTE culto
       const { data: existing } = await supabase.from(TABLES.CHECKINS)
         .select('id')
         .eq('id_crianca', c.idCrianca)
@@ -226,6 +225,15 @@ export const storageService = {
       const { error } = await supabase.from(TABLES.PRECHECKINS).update(payload).eq('id', id);
       if (error) throw error;
     } catch (e) { handleError(e, 'updatePreCheckin'); throw e; }
+  },
+
+  clearPreCheckins: async (idCulto: string) => {
+    try {
+      const { error } = await supabase.from(TABLES.PRECHECKINS).delete().eq('id_culto', idCulto);
+      if (error) throw error;
+    } catch (e) {
+      handleError(e, 'clearPreCheckins');
+    }
   },
 
   sendNotificacao: async (idCrianca: string, idCulto: string): Promise<boolean> => {
