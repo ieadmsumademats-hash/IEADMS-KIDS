@@ -21,8 +21,6 @@ const CultoAtivo: React.FC = () => {
   const [checkoutName, setCheckoutName] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [newKidForm, setNewKidForm] = useState({ nome: '', sobrenome: '', dataNascimento: '', responsavelNome: '', whatsapp: '', observacoes: '' });
   const [labelData, setLabelData] = useState<{ kid: Crianca, checkin: CheckIn } | null>(null);
 
   useEffect(() => {
@@ -74,7 +72,7 @@ const CultoAtivo: React.FC = () => {
     if (!id) return;
     const success = await storageService.sendNotificacao(kidId, id);
     if (success) {
-      alert('Notificação enviada!');
+      alert('Aviso enviado ao celular do responsável!');
     }
   };
 
@@ -88,7 +86,7 @@ const CultoAtivo: React.FC = () => {
 
   const handleManualCheckin = async (kid: Crianca) => {
     if (activeCheckins.some(c => c.idCrianca === kid.id)) {
-      alert(`${kid.nome} já está presente.`);
+      alert(`${kid.nome} já está na sala.`);
       setSearchTerm('');
       return;
     }
@@ -106,29 +104,40 @@ const CultoAtivo: React.FC = () => {
       if (lastCheck) triggerLabelPrint(kid, lastCheck);
       setSearchTerm('');
     } catch (e) {
-      alert("Erro no check-in.");
+      alert("Erro ao realizar check-in.");
     }
   };
 
   const handleCodeCheckin = async () => {
     const code = codeQuery.trim().toUpperCase();
-    const pre = preCheckins.find(p => p.codigo === code && p.status === 'pendente' && p.idCulto === id);
+    
+    // Busca o pré-checkin ignorando erros de prefixo ou espaços
+    const pre = preCheckins.find(p => 
+      p.codigo.toUpperCase() === code && 
+      p.status === 'pendente' && 
+      p.idCulto === id
+    );
     
     if (!pre) { 
-      alert('Código inválido.'); 
+      alert('Código não encontrado ou já confirmado. Verifique se o código está correto.'); 
       return; 
     }
 
     const kid = allCriancas.find(k => k.id === pre.idCrianca);
     if (kid) {
+      // Se já estiver na sala por check-in manual prévio, apenas confirmamos o código
       if (activeCheckins.some(c => c.idCrianca === kid.id)) {
         await storageService.updatePreCheckin(pre.id, { status: 'confirmado' });
         setCodeQuery('KIDS-');
+        alert(`${kid.nome} já estava na sala. Código confirmado.`);
         return;
       }
 
       await handleManualCheckin(kid);
-      await storageService.updatePreCheckin(pre.id, { status: 'confirmado', dataHoraCheckin: new Date().toISOString() });
+      await storageService.updatePreCheckin(pre.id, { 
+        status: 'confirmado', 
+        dataHoraCheckin: new Date().toISOString() 
+      });
       setCodeQuery('KIDS-');
     }
   };
@@ -146,27 +155,21 @@ const CultoAtivo: React.FC = () => {
 
   const handleEndCulto = async () => {
     if (activeCheckins.length > 0) { 
-        alert('Libere as crianças primeiro.'); 
+        alert('Libere todas as crianças antes de encerrar o culto.'); 
         setShowEndConfirm(false);
         return; 
     }
     
     try {
-      // 1. Limpar Notificações Ativas do Culto
       await storageService.clearNotificacoes(id!);
-      
-      // 2. Limpar Pré-Checkins do Culto (Evita acúmulo de lixo no banco)
       await storageService.clearPreCheckins(id!);
-
-      // 3. Encerrar o Culto Oficialmente
       await storageService.updateCulto(id!, { 
         status: 'encerrado', 
         horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
       });
-      
       navigate('/cultos');
     } catch (error) {
-      alert("Erro ao encerrar culto. Verifique sua conexão.");
+      alert("Erro ao finalizar sessão.");
     }
   };
 
@@ -174,7 +177,7 @@ const CultoAtivo: React.FC = () => {
     ? allCriancas.filter(k => (k.nome + ' ' + k.sobrenome).toLowerCase().includes(searchTerm.toLowerCase()))
     : [];
 
-  if (loading) return <div className="text-center py-10 text-purple-main font-bold">Carregando...</div>;
+  if (loading) return <div className="text-center py-10 text-purple-main font-bold">Carregando painel ativo...</div>;
 
   return (
     <div className="space-y-4 pb-8 -mt-2">
@@ -212,35 +215,32 @@ const CultoAtivo: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Coluna Lateral (Ações) */}
+            {/* Coluna Lateral */}
             <div className="lg:col-span-4 space-y-4">
-              {/* Código Compacto */}
               <div className="bg-yellow-main p-4 rounded-2xl shadow-sm">
                   <h2 className="text-[10px] font-black text-purple-dark mb-2 uppercase flex items-center gap-2">
                   {ICONS.QrCode} Confirmar Código
                   </h2>
                   <div className="flex bg-white rounded-xl overflow-hidden shadow-inner border border-yellow-secondary">
-                  <input 
-                      type="text" 
-                      value={codeQuery}
-                      onChange={handleCodeChange}
-                      className="flex-1 min-w-0 p-3 font-black text-sm tracking-widest uppercase outline-none"
-                  />
-                  <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-4 font-black text-[10px] uppercase">OK</button>
+                    <input 
+                        type="text" 
+                        value={codeQuery}
+                        onChange={handleCodeChange}
+                        className="flex-1 min-w-0 p-3 font-black text-sm tracking-widest uppercase outline-none"
+                    />
+                    <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-4 font-black text-[10px] uppercase">OK</button>
                   </div>
               </div>
 
-              {/* Busca Manual Compacta */}
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-[10px] font-black text-purple-dark uppercase flex items-center gap-2">
                         {ICONS.Search} Busca Manual
                     </h2>
-                    <button onClick={() => setIsAddingNew(true)} className="text-[9px] font-black uppercase text-purple-main bg-purple-main/5 px-2 py-1 rounded-lg">+ Novo</button>
                   </div>
                   <input 
                     type="text" 
-                    placeholder="Nome..."
+                    placeholder="Nome da criança..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full bg-gray-light p-2.5 rounded-xl font-bold mb-2 outline-none border border-transparent focus:border-purple-main text-xs"
@@ -255,7 +255,6 @@ const CultoAtivo: React.FC = () => {
                   </div>
               </div>
 
-              {/* Checkouts Compactos */}
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                   <h2 className="text-[10px] font-black text-purple-dark uppercase mb-3 flex items-center gap-2">
                       {ICONS.CheckCircle} Checkouts ({finishedCheckins.length})
@@ -276,7 +275,7 @@ const CultoAtivo: React.FC = () => {
               </div>
             </div>
 
-            {/* Coluna Principal (Lista Presentes) */}
+            {/* Coluna Principal */}
             <div className="lg:col-span-8">
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
                   <h2 className="text-[10px] font-black text-purple-dark mb-4 uppercase flex items-center gap-2">
@@ -292,21 +291,21 @@ const CultoAtivo: React.FC = () => {
                             <div className="flex-1 overflow-hidden pr-2">
                                 <h4 className="font-black text-purple-dark text-[11px] truncate">{kid?.nome} {kid?.sobrenome}</h4>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Entrada: {check.horaEntrada}</span>
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase">Entrada: {check.horaEntrada}</span>
                                   {kid?.observacoes && <span className="bg-red-500 text-white text-[7px] font-black px-1 rounded uppercase">!</span>}
                                 </div>
                             </div>
                             
                             <div className="flex items-center gap-1">
-                                <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-1.5 bg-white rounded-lg shadow-sm active:scale-90 transition-transform">
+                                <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-1.5 bg-white rounded-lg shadow-sm">
                                   {ICONS.QrCode}
                                 </button>
                                 {hasPreCheckin && (
-                                    <button onClick={() => handleSendNotification(kid!.id)} className="text-purple-dark p-1.5 bg-yellow-main rounded-lg shadow-sm active:scale-90 transition-transform">
+                                    <button onClick={() => handleSendNotification(kid!.id)} className="text-purple-dark p-1.5 bg-yellow-main rounded-lg shadow-sm">
                                       {ICONS.Info}
                                     </button>
                                 )}
-                                <button onClick={() => setShowCheckout(check)} className="text-white p-1.5 bg-red-500 rounded-lg shadow-sm active:scale-90 transition-transform">
+                                <button onClick={() => setShowCheckout(check)} className="text-white p-1.5 bg-red-500 rounded-lg shadow-sm">
                                     {ICONS.X}
                                 </button>
                             </div>
@@ -318,11 +317,11 @@ const CultoAtivo: React.FC = () => {
             </div>
         </div>
 
-        {/* Modal Checkout Compacto */}
+        {/* Modal Checkout */}
         {showCheckout && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center">
-                <h2 className="text-sm font-black text-purple-dark mb-4 uppercase">Confirmar Saída</h2>
+                <h2 className="text-sm font-black text-purple-dark mb-4 uppercase">Liberar Criança</h2>
                 <input type="text" placeholder="Nome de quem buscou..." autoFocus value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} className="w-full bg-gray-light p-3 rounded-xl font-bold mb-4 outline-none border border-transparent focus:border-purple-main text-xs" />
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => setShowCheckout(null)} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase">VOLTAR</button>
@@ -332,15 +331,15 @@ const CultoAtivo: React.FC = () => {
             </div>
         )}
 
-        {/* Modal Encerrar Compacto */}
+        {/* Modal Encerrar */}
         {showEndConfirm && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-red-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center">
                 <h2 className="text-sm font-black text-red-600 mb-2 uppercase">Encerrar Sessão?</h2>
-                <p className="text-[10px] font-bold text-gray-500 mb-6">Certifique-se de que todas as crianças já saíram.</p>
+                <p className="text-[10px] font-bold text-gray-500 mb-6">Esta ação limpa os códigos temporários.</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => setShowEndConfirm(false)} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase">CANCELAR</button>
-                  <button onClick={handleEndCulto} className="bg-red-500 text-white font-black py-3 rounded-xl shadow-lg text-[10px] uppercase">ENCERRAR AGORA</button>
+                  <button onClick={handleEndCulto} className="bg-red-500 text-white font-black py-3 rounded-xl shadow-lg text-[10px] uppercase">ENCERRAR</button>
                 </div>
             </div>
             </div>
