@@ -51,7 +51,7 @@ const PreCheckin: React.FC = () => {
         if (window.Notification && Notification.permission === 'granted') {
           new Notification('IEADMS Kids', {
             body: n.mensagem,
-            icon: 'https://api.dicebear.com/7.x/shapes/svg?seed=kids'
+            icon: 'https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG'
           });
           
           if (navigator.vibrate) {

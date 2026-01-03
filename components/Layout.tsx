@@ -41,8 +41,8 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
       <aside className="hidden md:flex flex-col w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
         <div className="p-6 border-b border-purple-main/20">
           <div className="flex items-center gap-3">
-            <div className="bg-white p-2 rounded-lg shadow-lg">
-              <img src="https://api.dicebear.com/7.x/shapes/svg?seed=ieadms" alt="Logo" className="w-6 h-6" />
+            <div className="bg-white p-1 rounded-lg shadow-lg">
+              <img src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" alt="Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
               <h1 className="kids-font text-xl font-bold leading-tight text-white">IEADMS</h1>
@@ -98,7 +98,7 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
 
       <header className="md:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
         <div className="flex items-center gap-2">
-          <img src="https://api.dicebear.com/7.x/shapes/svg?seed=ieadms" alt="Logo" className="w-5 h-5 bg-white p-0.5 rounded" />
+          <img src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" alt="Logo" className="w-8 h-8 bg-white p-0.5 rounded object-contain" />
           <span className="kids-font font-bold text-sm uppercase tracking-tight">IEADMS Kids</span>
         </div>
         <button onClick={onLogout} className="text-white/60 p-1 scale-90">{ICONS.LogOut}</button>
