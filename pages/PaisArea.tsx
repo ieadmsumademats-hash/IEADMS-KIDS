@@ -32,8 +32,12 @@ const PaisArea: React.FC = () => {
       <div className="fixed bottom-[-50px] left-[-50px] w-60 h-60 bg-yellow-main/5 rounded-full blur-3xl -z-10" />
 
       <header className="w-full max-w-lg mt-6 text-center space-y-6 animate-in fade-in slide-in-from-top-4 duration-700">
-        <div className="inline-block bg-white p-4 rounded-[2rem] shadow-xl transform hover:rotate-3 transition-transform">
-          <img src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" alt="Logo IEADMS Kids" className="w-20 h-20 object-contain" />
+        <div className="inline-block transform hover:rotate-3 transition-transform">
+          <img 
+            src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
+            alt="Logo IEADMS Kids" 
+            className="w-24 h-24 object-contain mix-blend-multiply" 
+          />
         </div>
         <div className="space-y-1">
           <h1 className="kids-font text-3xl font-black text-purple-dark leading-tight">Olá, Família!</h1>

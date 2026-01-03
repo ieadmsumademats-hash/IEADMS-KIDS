@@ -28,8 +28,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden p-10 md:p-14 border-b-8 border-yellow-main">
           <div className="text-center mb-12">
-            <div className="bg-white inline-block p-4 rounded-3xl shadow-xl mb-6 transform hover:rotate-6 transition-transform">
-              <img src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" alt="Logo" className="w-24 h-24 object-contain" />
+            <div className="inline-block mb-4 transform hover:rotate-6 transition-transform">
+              <img 
+                src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
+                alt="Logo" 
+                className="w-28 h-28 object-contain mix-blend-multiply" 
+              />
             </div>
             <h1 className="kids-font text-4xl font-bold text-purple-dark mb-2">IEADMS Kids</h1>
             <p className="text-gray-text font-bold uppercase tracking-widest text-xs">Administração</p>
