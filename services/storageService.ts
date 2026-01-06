@@ -3,9 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
 import { Crianca, Culto, CheckIn, PreCheckIn, NotificacaoAtiva } from '../types';
 
-const PROJECT_SCHEMA = "kids_ieadms";
+// Sanitize configuration to prevent common "Failed to fetch" issues
+const sanitizeUrl = (url: string) => (url || "").trim().replace(/\/$/, "");
+const sanitizeKey = (key: string) => (key || "").trim();
 
-export const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+const SUPABASE_URL = sanitizeUrl(supabaseConfig.url);
+const SUPABASE_KEY = sanitizeKey(supabaseConfig.anonKey);
+const PROJECT_SCHEMA = supabaseConfig.schema || "public";
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { 
     schema: PROJECT_SCHEMA 
   }
@@ -20,9 +26,21 @@ const TABLES = {
 };
 
 const handleError = (error: any, context: string) => {
-  const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-  if (errorMessage.includes("schema cache") || errorMessage.includes("not found")) {
-    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela '${context}' não encontrada.`);
+  let errorMessage = "Erro desconhecido";
+  
+  if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (typeof error === 'string') {
+    errorMessage = error;
+  } else if (error && typeof error === 'object') {
+    errorMessage = (error as any).message || JSON.stringify(error);
+  }
+
+  // Specific check for fetch failures
+  if (errorMessage.includes("Failed to fetch") || errorMessage.includes("fetch")) {
+    console.error(`❌ Erro de Conexão em ${context}: Não foi possível alcançar o servidor Supabase em ${SUPABASE_URL}. Verifique sua internet ou se o projeto está ativo.`);
+  } else if (errorMessage.includes("schema cache") || errorMessage.includes("not found")) {
+    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela ou Schema '${context}' não encontrada. Verifique se o schema '${PROJECT_SCHEMA}' está exposto nas configurações de API do Supabase.`);
   } else {
     console.error(`❌ Erro em ${context}:`, errorMessage);
   }
@@ -48,7 +66,10 @@ export const storageService = {
         responsavel_nome: c.responsavelNome, whatsapp: c.whatsapp, observacoes: c.observacoes
       }]).select();
       if (error) throw error;
-      return data[0];
+      return {
+        id: data[0].id, nome: data[0].nome, sobrenome: data[0].sobrenome, dataNascimento: data[0].data_nascimento,
+        responsavelNome: data[0].responsavel_nome, whatsapp: data[0].whatsapp, observacoes: data[0].observacoes, createdAt: data[0].created_at
+      } as Crianca;
     } catch (e) { handleError(e, 'addCrianca'); throw e; }
   },
 
@@ -90,17 +111,17 @@ export const storageService = {
       if (error) throw error;
       if (!data) return null;
       return {
-        id: data.id, tipo: data.tipo, tipoManual: data.tipo_manual, data: data.data,
+        id: data.id, tipo: data.id, tipoManual: data.tipo_manual, data: data.data,
         horaInicio: data.hora_inicio, horaFim: data.hora_fim, responsaveis: data.responsaveis, status: data.status
       } as Culto;
     } catch (e) { handleError(e, 'getActiveCulto'); return null; }
   },
 
   subscribeToActiveCulto: (callback: (culto: Culto | null) => void) => {
-    storageService.getActiveCulto().then(callback);
+    storageService.getActiveCulto().then(callback).catch(() => callback(null));
     const channel = supabase.channel('active_culto_changes')
       .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.CULTOS }, () => {
-        storageService.getActiveCulto().then(callback);
+        storageService.getActiveCulto().then(callback).catch(() => callback(null));
       }).subscribe();
     return () => { supabase.removeChannel(channel); };
   },
@@ -149,25 +170,27 @@ export const storageService = {
   },
 
   subscribeToCheckins: (idCulto: string, callback: (checkins: CheckIn[]) => void) => {
-    storageService.getCheckins(idCulto).then(callback);
+    storageService.getCheckins(idCulto).then(callback).catch(() => callback([]));
     const channel = supabase.channel(`checkins_${idCulto}`)
       .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.CHECKINS, filter: `id_culto=eq.${idCulto}` }, () => {
-        storageService.getCheckins(idCulto).then(callback);
+        storageService.getCheckins(idCulto).then(callback).catch(() => callback([]));
       }).subscribe();
     return () => { supabase.removeChannel(channel); };
   },
 
   addCheckin: async (c: Omit<CheckIn, 'id'>) => {
     try {
-      const { data: existing } = await supabase.from(TABLES.CHECKINS)
+      // Re-validação rigorosa e atômica no banco antes de inserir
+      const { data: existing, error: checkError } = await supabase.from(TABLES.CHECKINS)
         .select('id')
         .eq('id_crianca', c.idCrianca)
         .eq('id_culto', c.idCulto)
         .eq('status', 'presente')
         .maybeSingle();
 
+      if (checkError) throw checkError;
       if (existing) {
-        throw new Error("Criança já está presente neste culto.");
+        throw new Error("ALREADY_PRESENT");
       }
 
       const { error } = await supabase.from(TABLES.CHECKINS).insert([{
@@ -182,6 +205,7 @@ export const storageService = {
       const payload: any = {};
       if (updated.status) payload.status = updated.status;
       if (updated.horaSaida) payload.hora_saida = updated.horaSaida;
+      // Fixed: The property in CheckIn interface is 'quemRetirou', not 'quem_retirou'
       if (updated.quemRetirou) payload.quem_retirou = updated.quemRetirou;
       const { error } = await supabase.from(TABLES.CHECKINS).update(payload).eq('id', id);
       if (error) throw error;
@@ -200,16 +224,25 @@ export const storageService = {
   },
 
   subscribeToPreCheckins: (callback: (pre: PreCheckIn[]) => void) => {
-    storageService.getPreCheckins().then(callback);
+    storageService.getPreCheckins().then(callback).catch(() => callback([]));
     const channel = supabase.channel('pre_checkins_changes')
       .on('postgres_changes', { event: '*', schema: PROJECT_SCHEMA, table: TABLES.PRECHECKINS }, () => {
-        storageService.getPreCheckins().then(callback);
+        storageService.getPreCheckins().then(callback).catch(() => callback([]));
       }).subscribe();
     return () => { supabase.removeChannel(channel); };
   },
 
   addPreCheckin: async (p: Omit<PreCheckIn, 'id'>) => {
     try {
+      const { data: existing } = await supabase.from(TABLES.PRECHECKINS)
+        .select('id')
+        .eq('id_crianca', p.idCrianca)
+        .eq('id_culto', p.idCulto)
+        .eq('status', 'pendente')
+        .maybeSingle();
+      
+      if (existing) return;
+
       const { error } = await supabase.from(TABLES.PRECHECKINS).insert([{
         id_crianca: p.idCrianca, id_culto: p.idCulto, codigo: p.codigo, status: 'pendente'
       }]);

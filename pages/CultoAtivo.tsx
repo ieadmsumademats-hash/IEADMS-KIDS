@@ -5,6 +5,17 @@ import { ICONS } from '../constants';
 import { storageService } from '../services/storageService';
 import { Crianca, CheckIn, Culto, PreCheckIn } from '../types';
 
+const formatPhone = (value: string) => {
+  if (!value) return value;
+  const phoneNumber = value.replace(/[^\d]/g, '');
+  const phoneNumberLength = phoneNumber.length;
+  if (phoneNumberLength < 3) return phoneNumber;
+  if (phoneNumberLength < 7) {
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+  }
+  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+};
+
 const CultoAtivo: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -20,6 +31,15 @@ const CultoAtivo: React.FC = () => {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [checkoutName, setCheckoutName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isProcessingCode, setIsProcessingCode] = useState(false);
+  const [timeoutExpired, setTimeoutExpired] = useState(false);
+
+  // Estados para novo cadastro dentro do culto
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState<Crianca | null>(null);
+  const [regForm, setRegForm] = useState({
+    nome: '', sobrenome: '', dataNascimento: '', responsavelNome: '', whatsapp: '', observacoes: ''
+  });
 
   const [labelData, setLabelData] = useState<{ kid: Crianca, checkin: CheckIn } | null>(null);
 
@@ -85,6 +105,7 @@ const CultoAtivo: React.FC = () => {
   };
 
   const handleManualCheckin = async (kid: Crianca) => {
+    // Validação preventiva local
     if (activeCheckins.some(c => c.idCrianca === kid.id)) {
       alert(`${kid.nome} já está na sala.`);
       setSearchTerm('');
@@ -99,45 +120,99 @@ const CultoAtivo: React.FC = () => {
     };
     try {
       await storageService.addCheckin(newCheck);
+      // O estado checkins será atualizado via subscription
       const updatedCheckins = await storageService.getCheckins(id!);
       const lastCheck = updatedCheckins.find(c => c.idCrianca === kid.id && c.status === 'presente');
       if (lastCheck) triggerLabelPrint(kid, lastCheck);
       setSearchTerm('');
-    } catch (e) {
-      alert("Erro ao realizar check-in.");
+    } catch (e: any) {
+      if (e.message === "ALREADY_PRESENT") {
+        alert(`${kid.nome} já está na sala.`);
+      } else {
+        alert(e.message || "Erro ao realizar check-in.");
+      }
     }
   };
 
   const handleCodeCheckin = async () => {
+    if (isProcessingCode) return;
+    
     const code = codeQuery.trim().toUpperCase();
-    
-    const pre = preCheckins.find(p => {
-        const matchCode = p.codigo.trim().toUpperCase() === code;
-        const matchStatus = p.status === 'pendente';
-        const matchCulto = String(p.idCulto) === String(id);
-        return matchCode && matchStatus && matchCulto;
-    });
-    
-    if (!pre) { 
-      alert('Código não encontrado ou já confirmado. Verifique se o código está correto para este culto.'); 
-      return; 
-    }
+    if (code === 'KIDS-') return;
 
-    const kid = allCriancas.find(k => k.id === pre.idCrianca);
-    if (kid) {
-      if (activeCheckins.some(c => c.idCrianca === kid.id)) {
-        await storageService.updatePreCheckin(pre.id, { status: 'confirmado' });
-        setCodeQuery('KIDS-');
-        alert(`${kid.nome} já estava na sala. Código confirmado.`);
-        return;
+    setIsProcessingCode(true);
+    setTimeoutExpired(false);
+
+    // Variável para rastrear se a criança foi inserida
+    let kidInserted = false;
+    
+    // Timer de 8 segundos para timeout
+    const timeoutId = setTimeout(() => {
+        if (!kidInserted) {
+            setTimeoutExpired(true);
+            setIsProcessingCode(false);
+        }
+    }, 8000);
+    
+    try {
+      const pre = preCheckins.find(p => {
+          const matchCode = p.codigo.trim().toUpperCase() === code;
+          const matchStatus = p.status === 'pendente';
+          const matchCulto = String(p.idCulto) === String(id);
+          return matchCode && matchStatus && matchCulto;
+      });
+      
+      if (!pre) { 
+        clearTimeout(timeoutId);
+        alert('Código não encontrado ou já confirmado.'); 
+        setIsProcessingCode(false);
+        return; 
       }
 
-      await handleManualCheckin(kid);
-      await storageService.updatePreCheckin(pre.id, { 
-        status: 'confirmado', 
-        dataHoraCheckin: new Date().toISOString() 
-      });
-      setCodeQuery('KIDS-');
+      const kid = allCriancas.find(k => k.id === pre.idCrianca);
+      if (kid) {
+        // Se já está na sala, apenas confirma o código
+        if (activeCheckins.some(c => c.idCrianca === kid.id)) {
+          kidInserted = true;
+          clearTimeout(timeoutId);
+          await storageService.updatePreCheckin(pre.id, { status: 'confirmado' });
+          setCodeQuery('KIDS-');
+          setIsProcessingCode(false);
+          return;
+        }
+
+        // Realiza o check-in
+        await handleManualCheckin(kid);
+        kidInserted = true;
+        clearTimeout(timeoutId);
+        
+        await storageService.updatePreCheckin(pre.id, { 
+          status: 'confirmado', 
+          dataHoraCheckin: new Date().toISOString() 
+        });
+        
+        setCodeQuery('KIDS-');
+        setIsProcessingCode(false);
+      }
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error("Erro no processamento do código:", error);
+      setIsProcessingCode(false);
+    }
+  };
+
+  const handleSaveNewKid = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const newKidData: Omit<Crianca, 'id'> = {
+        ...regForm,
+        createdAt: new Date().toISOString()
+      };
+      const createdKid = await storageService.addCrianca(newKidData);
+      setRegistrationSuccess(createdKid);
+      setAllCriancas(prev => [...prev, createdKid].sort((a,b) => a.nome.localeCompare(b.nome)));
+    } catch (error) {
+      alert("Erro ao salvar cadastro. Verifique os dados.");
     }
   };
 
@@ -213,7 +288,7 @@ const CultoAtivo: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div className="lg:col-span-4 space-y-4">
-              <div className="bg-yellow-main p-4 rounded-2xl shadow-sm">
+              <div className={`bg-yellow-main p-4 rounded-2xl shadow-sm transition-all ${timeoutExpired ? 'ring-4 ring-red-500 ring-offset-2' : ''}`}>
                   <h2 className="text-[10px] font-black text-purple-dark mb-2 uppercase flex items-center gap-2">
                   {ICONS.QrCode} Confirmar Código
                   </h2>
@@ -222,10 +297,43 @@ const CultoAtivo: React.FC = () => {
                         type="text" 
                         value={codeQuery}
                         onChange={handleCodeChange}
-                        className="flex-1 min-w-0 p-3 font-black text-sm tracking-widest uppercase outline-none"
+                        disabled={isProcessingCode}
+                        className="flex-1 min-w-0 p-3 font-black text-sm tracking-widest uppercase outline-none disabled:opacity-50"
                     />
-                    <button onClick={handleCodeCheckin} className="bg-purple-dark text-white px-4 font-black text-[10px] uppercase">OK</button>
+                    <button 
+                      onClick={handleCodeCheckin} 
+                      disabled={isProcessingCode || codeQuery === 'KIDS-'}
+                      className="bg-purple-dark text-white px-4 font-black text-[10px] uppercase disabled:opacity-50"
+                    >
+                      {isProcessingCode ? '...' : 'OK'}
+                    </button>
                   </div>
+
+                  {timeoutExpired && (
+                    <div className="mt-4 p-3 bg-white/90 rounded-xl border border-red-200 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <p className="text-[9px] font-black text-red-600 uppercase mb-2 leading-tight">O tempo de espera expirou (8s). A conexão pode estar lenta.</p>
+                      <div className="flex flex-col gap-1.5">
+                        <button 
+                          onClick={() => {
+                            setTimeoutExpired(false);
+                            handleCodeCheckin();
+                          }}
+                          className="w-full bg-purple-main text-white py-2 rounded-lg text-[9px] font-black uppercase"
+                        >
+                          Tentar novamente
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setTimeoutExpired(false);
+                            setSearchTerm(''); // Foca na busca manual
+                          }}
+                          className="w-full bg-gray-100 text-gray-500 py-2 rounded-lg text-[9px] font-black uppercase"
+                        >
+                          Incluir manualmente no culto
+                        </button>
+                      </div>
+                    </div>
+                  )}
               </div>
 
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -233,6 +341,16 @@ const CultoAtivo: React.FC = () => {
                     <h2 className="text-[10px] font-black text-purple-dark uppercase flex items-center gap-2">
                         {ICONS.Search} Busca Manual
                     </h2>
+                    <button 
+                      onClick={() => {
+                        setRegForm({ nome: '', sobrenome: '', dataNascimento: '', responsavelNome: '', whatsapp: '', observacoes: '' });
+                        setRegistrationSuccess(null);
+                        setIsRegistering(true);
+                      }}
+                      className="text-[9px] font-black text-purple-main uppercase bg-purple-main/10 px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-purple-main hover:text-white transition-all"
+                    >
+                      {ICONS.Plus} Novo Cadastro
+                    </button>
                   </div>
                   <input 
                     type="text" 
@@ -320,6 +438,75 @@ const CultoAtivo: React.FC = () => {
               </div>
             </div>
         </div>
+
+        {/* Modal Cadastro de Criança Contextual (Dentro do Culto) */}
+        {isRegistering && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-purple-dark/80 backdrop-blur-md">
+            <div className="bg-white w-full max-w-xl rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in duration-300 overflow-y-auto max-h-[90vh]">
+              {!registrationSuccess ? (
+                <>
+                  <h2 className="text-xl font-black text-purple-dark mb-6 uppercase tracking-tight">Cadastro Rápido</h2>
+                  <form onSubmit={handleSaveNewKid} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1 block">Nome</label>
+                        <input required value={regForm.nome} onChange={e => setRegForm({...regForm, nome: e.target.value})} className="w-full bg-gray-light p-3 rounded-xl font-bold text-xs outline-none border-2 border-transparent focus:border-purple-main" />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1 block">Sobrenome</label>
+                        <input required value={regForm.sobrenome} onChange={e => setRegForm({...regForm, sobrenome: e.target.value})} className="w-full bg-gray-light p-3 rounded-xl font-bold text-xs outline-none border-2 border-transparent focus:border-purple-main" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1 block">Nascimento</label>
+                        <input type="date" required value={regForm.dataNascimento} onChange={e => setRegForm({...regForm, dataNascimento: e.target.value})} className="w-full bg-gray-light p-3 rounded-xl font-bold text-xs outline-none border-2 border-transparent focus:border-purple-main" />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1 block">Responsável</label>
+                        <input required value={regForm.responsavelNome} onChange={e => setRegForm({...regForm, responsavelNome: e.target.value})} className="w-full bg-gray-light p-3 rounded-xl font-bold text-xs outline-none border-2 border-transparent focus:border-purple-main" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-gray-400 mb-1 block">WhatsApp</label>
+                      <input required value={regForm.whatsapp} onChange={e => setRegForm({...regForm, whatsapp: formatPhone(e.target.value)})} className="w-full bg-gray-light p-3 rounded-xl font-bold text-xs outline-none border-2 border-transparent focus:border-purple-main" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 pt-4">
+                      <button type="button" onClick={() => setIsRegistering(false)} className="bg-gray-100 text-gray-500 font-black py-4 rounded-xl text-[10px] uppercase">CANCELAR</button>
+                      <button type="submit" className="bg-purple-main text-white font-black py-4 rounded-xl shadow-lg text-[10px] uppercase">SALVAR DADOS</button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="text-center py-6">
+                  <div className="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    {ICONS.CheckCircle}
+                  </div>
+                  <h2 className="text-xl font-black text-purple-dark mb-2 uppercase">CADASTRO REALIZADO!</h2>
+                  <p className="text-xs font-bold text-gray-500 mb-8">Criança cadastrada com sucesso no sistema.</p>
+                  
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={() => {
+                        handleManualCheckin(registrationSuccess);
+                        setIsRegistering(false);
+                      }}
+                      className="w-full bg-green-500 text-white font-black py-5 rounded-2xl shadow-xl text-xs uppercase tracking-widest hover:scale-[1.02] transition-transform"
+                    >
+                      👉 Adicionar criança ao culto
+                    </button>
+                    <button 
+                      onClick={() => setIsRegistering(false)}
+                      className="w-full bg-gray-100 text-gray-400 font-black py-4 rounded-2xl text-[10px] uppercase"
+                    >
+                      APENAS FECHAR
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {showCheckout && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
