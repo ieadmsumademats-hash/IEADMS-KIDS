@@ -79,6 +79,7 @@ export const storageService = {
       if (c.nome) payload.nome = c.nome;
       if (c.sobrenome) payload.sobrenome = c.sobrenome;
       if (c.dataNascimento) payload.data_nascimento = c.dataNascimento;
+      // Fix: Use c.responsavelNome instead of c.responsavel_nome to match the Crianca interface
       if (c.responsavelNome) payload.responsavel_nome = c.responsavelNome;
       if (c.whatsapp) payload.whatsapp = c.whatsapp;
       if (c.observacoes !== undefined) payload.observacoes = c.observacoes;
@@ -111,8 +112,14 @@ export const storageService = {
       if (error) throw error;
       if (!data) return null;
       return {
-        id: data.id, tipo: data.id, tipoManual: data.tipo_manual, data: data.data,
-        horaInicio: data.hora_inicio, horaFim: data.hora_fim, responsaveis: data.responsaveis, status: data.status
+        id: data.id, 
+        tipo: data.tipo, // Corrigido de data.id para data.tipo
+        tipoManual: data.tipo_manual, 
+        data: data.data,
+        horaInicio: data.hora_inicio, 
+        horaFim: data.hora_fim, 
+        responsaveis: data.responsaveis, 
+        status: data.status
       } as Culto;
     } catch (e) { handleError(e, 'getActiveCulto'); return null; }
   },
@@ -193,6 +200,7 @@ export const storageService = {
         throw new Error("ALREADY_PRESENT");
       }
 
+      // Fix: Use c.horaEntrada instead of c.hora_entrada to match the CheckIn interface
       const { error } = await supabase.from(TABLES.CHECKINS).insert([{
         id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, status: 'presente'
       }]);

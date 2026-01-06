@@ -149,43 +149,62 @@ const CultoAtivo: React.FC = () => {
     // Timer de 8 segundos para timeout
     const timeoutId = setTimeout(() => {
         if (!kidInserted) {
+            console.warn(`[DEBUG PreCheckIn] TIMEOUT de 8 segundos atingido para o código: ${code}`);
             setTimeoutExpired(true);
             setIsProcessingCode(false);
         }
     }, 8000);
     
+    console.group(`[DEBUG PreCheckIn] Processando código: ${code}`);
     try {
+      console.log(`[DEBUG PreCheckIn] Buscando em ${preCheckins.length} pré-checkins carregados.`);
+      
       const pre = preCheckins.find(p => {
           const matchCode = p.codigo.trim().toUpperCase() === code;
           const matchStatus = p.status === 'pendente';
           const matchCulto = String(p.idCulto) === String(id);
+          
+          if (matchCode) {
+            console.log(`[DEBUG PreCheckIn] Match de código encontrado! Status: ${p.status}, CultoID: ${p.idCulto} (Atual: ${id})`);
+          }
+          
           return matchCode && matchStatus && matchCulto;
       });
       
       if (!pre) { 
+        console.error(`[DEBUG PreCheckIn] Código ${code} não encontrado nos critérios: Pendente + Culto ${id}`);
+        console.table(preCheckins.map(p => ({ codigo: p.codigo, status: p.status, id_culto: p.idCulto })));
+        
         clearTimeout(timeoutId);
         alert('Código não encontrado ou já confirmado.'); 
         setIsProcessingCode(false);
+        console.groupEnd();
         return; 
       }
 
       const kid = allCriancas.find(k => k.id === pre.idCrianca);
       if (kid) {
+        console.log(`[DEBUG PreCheckIn] Criança identificada: ${kid.nome} ${kid.sobrenome} (ID: ${kid.id})`);
+        
         // Se já está na sala, apenas confirma o código
         if (activeCheckins.some(c => c.idCrianca === kid.id)) {
+          console.log(`[DEBUG PreCheckIn] Criança já presente na sala. Apenas confirmando o código.`);
           kidInserted = true;
           clearTimeout(timeoutId);
           await storageService.updatePreCheckin(pre.id, { status: 'confirmado' });
           setCodeQuery('KIDS-');
           setIsProcessingCode(false);
+          console.groupEnd();
           return;
         }
 
         // Realiza o check-in
+        console.log(`[DEBUG PreCheckIn] Executando handleManualCheckin para inserir no culto.`);
         await handleManualCheckin(kid);
         kidInserted = true;
         clearTimeout(timeoutId);
         
+        console.log(`[DEBUG PreCheckIn] Atualizando status do pré-checkin para CONFIRMADO no banco.`);
         await storageService.updatePreCheckin(pre.id, { 
           status: 'confirmado', 
           dataHoraCheckin: new Date().toISOString() 
@@ -193,12 +212,18 @@ const CultoAtivo: React.FC = () => {
         
         setCodeQuery('KIDS-');
         setIsProcessingCode(false);
+        console.log(`[DEBUG PreCheckIn] Processo concluído com sucesso.`);
+      } else {
+        console.error(`[DEBUG PreCheckIn] ERRO FATAL: Criança com ID ${pre.idCrianca} não encontrada na lista geral de crianças.`);
+        clearTimeout(timeoutId);
+        setIsProcessingCode(false);
       }
     } catch (error) {
       clearTimeout(timeoutId);
-      console.error("Erro no processamento do código:", error);
+      console.error("[DEBUG PreCheckIn] ERRO DURANTE O PROCESSAMENTO:", error);
       setIsProcessingCode(false);
     }
+    console.groupEnd();
   };
 
   const handleSaveNewKid = async (e: React.FormEvent) => {
