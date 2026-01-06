@@ -210,14 +210,28 @@ const CultoAtivo: React.FC = () => {
   };
 
   const handleConfirmCheckout = async () => {
-    if (!showCheckout || !checkoutName) return;
-    await storageService.updateCheckin(showCheckout.id, {
-      status: 'saiu',
-      horaSaida: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      quemRetirou: checkoutName
-    });
-    setShowCheckout(null);
-    setCheckoutName('');
+    if (!showCheckout || !checkoutName) {
+      console.warn("[DEBUG CHECKOUT] Tentativa de checkout sem dados:", { showCheckout, checkoutName });
+      return;
+    }
+    
+    console.log("[DEBUG CHECKOUT] Iniciando processo para ID:", showCheckout.id);
+    
+    try {
+      await storageService.updateCheckin(showCheckout.id, {
+        status: 'saiu',
+        horaSaida: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        quemRetirou: checkoutName
+      });
+      
+      console.log("[DEBUG CHECKOUT] Chamada de serviço concluída com sucesso.");
+      setShowCheckout(null);
+      setCheckoutName('');
+    } catch (error: any) {
+      console.error("[DEBUG CHECKOUT] Falha crítica no checkout:", error);
+      alert(`Erro ao liberar criança: ${error.message || "Problema de conexão com o banco."}`);
+      // Não limpa o estado para permitir nova tentativa
+    }
   };
 
   const handleEndCulto = async () => {
@@ -397,7 +411,26 @@ const CultoAtivo: React.FC = () => {
             </div>
         </div>
 
-        {/* Modais omitidos por brevidade, permanecem com a mesma estrutura de layout */}
+        {showCheckout && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200">
+                <h2 className="text-sm font-black text-purple-dark mb-4 uppercase">Liberar Criança</h2>
+                <input 
+                  type="text" 
+                  placeholder="Nome de quem buscou..." 
+                  autoFocus 
+                  value={checkoutName} 
+                  onChange={(e) => setCheckoutName(e.target.value)} 
+                  className="w-full bg-gray-light p-3 rounded-xl font-bold mb-4 outline-none border border-transparent focus:border-purple-main text-xs" 
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => { setShowCheckout(null); setCheckoutName(''); }} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase">VOLTAR</button>
+                  <button onClick={handleConfirmCheckout} disabled={!checkoutName} className="bg-green-500 text-white font-black py-3 rounded-xl shadow-lg disabled:opacity-50 text-[10px] uppercase">CONFIRMAR</button>
+                </div>
+            </div>
+            </div>
+        )}
+
         {showEndConfirm && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-red-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center">

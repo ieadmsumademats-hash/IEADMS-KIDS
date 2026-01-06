@@ -35,11 +35,8 @@ const handleError = (error: any, context: string) => {
     errorMessage = (error as any).message || JSON.stringify(error);
   }
 
-  // Specific check for fetch failures
   if (errorMessage.includes("Failed to fetch") || errorMessage.includes("fetch")) {
-    console.error(`❌ Erro de Conexão em ${context}: Não foi possível alcançar o servidor Supabase em ${SUPABASE_URL}. Verifique sua internet ou se o projeto está ativo.`);
-  } else if (errorMessage.includes("schema cache") || errorMessage.includes("not found")) {
-    console.warn(`⚠️ [SCHEMA ${PROJECT_SCHEMA}] Tabela ou Schema '${context}' não encontrada. Verifique se o schema '${PROJECT_SCHEMA}' está exposto nas configurações de API do Supabase.`);
+    console.error(`❌ Erro de Conexão em ${context}: Não foi possível alcançar o servidor Supabase.`);
   } else {
     console.error(`❌ Erro em ${context}:`, errorMessage);
   }
@@ -193,9 +190,7 @@ export const storageService = {
         .maybeSingle();
 
       if (checkError) throw checkError;
-      if (existing) {
-        throw new Error("ALREADY_PRESENT");
-      }
+      if (existing) throw new Error("ALREADY_PRESENT");
 
       const { error } = await supabase.from(TABLES.CHECKINS).insert([{
         id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, status: 'presente'
@@ -206,13 +201,28 @@ export const storageService = {
 
   updateCheckin: async (id: string, updated: Partial<CheckIn>) => {
     try {
+      console.log(`[DEBUG CHECKOUT] Iniciando updateCheckin ID: ${id}`, updated);
       const payload: any = {};
       if (updated.status) payload.status = updated.status;
       if (updated.horaSaida) payload.hora_saida = updated.horaSaida;
       if (updated.quemRetirou) payload.quem_retirou = updated.quemRetirou;
-      const { error } = await supabase.from(TABLES.CHECKINS).update(payload).eq('id', id);
-      if (error) throw error;
-    } catch (e) { handleError(e, 'updateCheckin'); throw e; }
+      
+      const { data, error } = await supabase
+        .from(TABLES.CHECKINS)
+        .update(payload)
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        console.error(`[DEBUG CHECKOUT] Erro no Supabase:`, error);
+        throw error;
+      }
+      
+      console.log(`[DEBUG CHECKOUT] Sucesso no Supabase. Registros afetados:`, data?.length);
+    } catch (e) { 
+      handleError(e, 'updateCheckin'); 
+      throw e; 
+    }
   },
 
   getPreCheckins: async () => {
@@ -267,8 +277,6 @@ export const storageService = {
     try {
       const { error } = await supabase.from(TABLES.PRECHECKINS).delete().eq('id_culto', idCulto);
       if (error) throw error;
-    } catch (e) {
-      handleError(e, 'clearPreCheckins');
-    }
+    } catch (e) { handleError(e, 'clearPreCheckins'); }
   }
 };
