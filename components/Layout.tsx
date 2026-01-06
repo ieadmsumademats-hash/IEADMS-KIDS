@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants';
@@ -30,8 +29,6 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
     { label: 'Estatísticas', path: '/estatisticas', icon: ICONS.BarChart },
   ];
 
-  const isAtivoPage = location.pathname.includes('/cultos/ativo');
-
   if (!isAdmin || location.pathname.startsWith('/pais') || location.pathname === '/login') {
     return <div className="min-h-screen bg-gray-light font-sans">{children}</div>;
   }
@@ -41,11 +38,11 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
       <aside className="hidden md:flex flex-col w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
         <div className="p-6 border-b border-purple-main/20">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center bg-white p-1 rounded-xl shadow-inner">
+            <div className="flex items-center justify-center transition-transform hover:scale-110">
               <img 
                 src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
                 alt="Logo" 
-                className="w-10 h-10 object-contain" 
+                className="w-12 h-12 object-contain mix-blend-multiply" 
               />
             </div>
             <div>
@@ -102,11 +99,11 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
 
       <header className="md:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
         <div className="flex items-center gap-2">
-          <div className="bg-white p-1 rounded-lg">
+          <div className="flex items-center">
             <img 
               src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
               alt="Logo" 
-              className="w-8 h-8 object-contain" 
+              className="w-9 h-9 object-contain mix-blend-multiply" 
             />
           </div>
           <span className="kids-font font-bold text-sm uppercase tracking-tight">IEADMS Kids</span>

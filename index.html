@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -89,8 +88,8 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 80mm; /* Approx post-it width */
-                height: 80mm; /* Approx post-it height */
+                width: 80mm;
+                height: 80mm;
                 padding: 5mm;
                 border: 1px solid #eee;
                 display: flex !important;
@@ -106,7 +105,7 @@
     </style>
     <script>
         window.process = { env: { NODE_ENV: 'production' } };
-        tailwind.config = {
+        window.tailwind.config = {
             theme: {
                 extend: {
                     colors: {
@@ -127,19 +126,19 @@
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
-                        'bounce-slow': 'bounce 2s infinite',
+                        'bounce-slow': 'bounce 2s infinite'
                     },
                     keyframes: {
                         shake: {
                             '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
                             '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
                             '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
-                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
                         }
                     }
                 }
             }
-        }
+        };
     </script>
 <script type="importmap">
 {
@@ -151,8 +150,8 @@
     "lucide-react": "https://esm.sh/lucide-react@0.474.0?deps=react@19.0.0",
     "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0,react-dom@19.0.0",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.48.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
 }
 </script>
