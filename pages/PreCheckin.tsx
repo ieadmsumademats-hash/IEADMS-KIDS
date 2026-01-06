@@ -17,7 +17,6 @@ const PreCheckin: React.FC = () => {
   const [step, setStep] = useState(1);
   const [generated, setGenerated] = useState<string | null>(null);
   const [selectedKidId, setSelectedKidId] = useState<string | null>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -37,65 +36,7 @@ const PreCheckin: React.FC = () => {
       setLoading(false);
     };
     loadData();
-
-    // Verifica estado atual da permissão
-    if (window.Notification && Notification.permission === 'granted') {
-      setNotificationsEnabled(true);
-    }
   }, []);
-
-  // Listener para notificações
-  useEffect(() => {
-    if (selectedKidId && notificationsEnabled) {
-      const unsub = storageService.subscribeToNotificacoes(selectedKidId, (n) => {
-        if (window.Notification && Notification.permission === 'granted') {
-          new Notification('IEADMS Kids', {
-            body: n.mensagem,
-            icon: 'https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG'
-          });
-          
-          if (navigator.vibrate) {
-            navigator.vibrate([300, 100, 300, 100, 500]);
-          }
-        }
-      });
-      return () => unsub();
-    }
-  }, [selectedKidId, notificationsEnabled]);
-
-  const requestNotificationPermission = async () => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isStandalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
-
-    // Se o navegador não suportar a API de Notificação (comum em iPhone se não estiver "instalado")
-    if (!('Notification' in window)) {
-      if (isIOS && !isStandalone) {
-        alert('📱 ATENÇÃO PAPAI/MAMÃE: No iPhone, você precisa primeiro clicar no botão de "Compartilhar" (o quadradinho com seta no meio) e depois em "Adicionar à Tela de Início".\n\nAbra o app por esse novo ícone que vai aparecer e aí este botão de alertas vai funcionar!');
-      } else {
-        alert('Seu navegador não suporta avisos automáticos. Mas não se preocupe, chamaremos você pelo WhatsApp!');
-      }
-      return;
-    }
-
-    // Se o usuário já bloqueou anteriormente
-    if (Notification.permission === 'denied') {
-      alert('⚠️ Os avisos estão bloqueados no seu celular. Para ativar, clique no ícone de "Cadeado" lá em cima (ao lado do endereço do site) e mude Notificações para "Permitir".');
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        setNotificationsEnabled(true);
-        alert('✅ TUDO CERTO! Agora seu celular vai apitar quando seu filho estiver pronto para ser buscado.');
-      } else {
-        alert('Você não autorizou os alertas. Caso mude de idéia, clique no botão amarelo novamente e escolha "Permitir".');
-      }
-    } catch (err) {
-      console.error("Erro ao solicitar permissão:", err);
-      alert('Ocorreu um erro ao tentar ativar os alertas. Tente atualizar a página.');
-    }
-  };
 
   const filtered = search.length > 1 
     ? kids.filter(k => (k.nome + ' ' + k.sobrenome).toLowerCase().includes(search.toLowerCase()))
@@ -177,33 +118,6 @@ const PreCheckin: React.FC = () => {
              </div>
              <h2 className="text-2xl font-black text-purple-dark mb-2 uppercase">PRONTO!</h2>
              
-             {!notificationsEnabled ? (
-                <div className="relative group mb-10">
-                  {/* Efeito de Brilho em volta do botão */}
-                  <div className="absolute -inset-2 bg-gradient-to-r from-yellow-main via-white to-yellow-main rounded-[2.5rem] blur-lg opacity-75 group-hover:opacity-100 animate-pulse transition duration-1000"></div>
-                  
-                  <button 
-                    onClick={requestNotificationPermission} 
-                    className="relative bg-yellow-main border-4 border-yellow-secondary text-purple-dark p-6 rounded-[2.5rem] shadow-2xl transform active:scale-95 transition-all flex flex-col items-center gap-3 w-full"
-                  >
-                    <div className="text-3xl animate-bounce">🔔</div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-black uppercase leading-tight tracking-tight">
-                        TOQUE AQUI PARA SER AVISADO NO CELULAR QUANDO SEU FILHO ESTIVER PRONTO!
-                      </span>
-                      <span className="text-[9px] font-bold opacity-70 uppercase tracking-widest">
-                        (Ative para seu celular apitar e vibrar)
-                      </span>
-                    </div>
-                  </button>
-                </div>
-             ) : (
-                <div className="bg-green-50 border-2 border-green-200 text-green-700 p-4 rounded-2xl mb-8 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                   Avisos Ativados no Celular
-                </div>
-             )}
-
              <p className="text-gray-text font-bold mb-6 text-sm leading-tight px-2">Apresente este código na recepção:</p>
              <div className="bg-purple-dark text-yellow-main p-8 rounded-[2.5rem] shadow-2xl mb-8 transform transition-transform select-none border-b-8 border-purple-main">
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 block mb-3 text-white">Código de Hoje</span>
@@ -212,7 +126,7 @@ const PreCheckin: React.FC = () => {
              <button onClick={() => navigate('/pais')} className="w-full bg-gray-light text-purple-dark font-black py-4 rounded-2xl shadow-md text-[10px] uppercase tracking-widest">VOLTAR AO INÍCIO</button>
              
              <p className="mt-8 text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-relaxed">
-                Importante: Mantenha esta página aberta em segundo plano para o alerta funcionar.
+                Importante: Quando terminar o culto, apresente-se à equipe para buscar seu filho.
              </p>
           </div>
         )}

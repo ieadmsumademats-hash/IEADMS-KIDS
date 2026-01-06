@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
-import { Crianca, Culto, CheckIn, PreCheckIn, NotificacaoAtiva } from '../types';
+import { Crianca, Culto, CheckIn, PreCheckIn } from '../types';
 
 // Sanitize configuration to prevent common "Failed to fetch" issues
 const sanitizeUrl = (url: string) => (url || "").trim().replace(/\/$/, "");
@@ -21,8 +21,7 @@ const TABLES = {
   CRIANCAS: 'criancas',
   CULTOS: 'cultos',
   CHECKINS: 'checkins',
-  PRECHECKINS: 'pre_checkins',
-  NOTIFICACOES: 'notificacoes_ativas'
+  PRECHECKINS: 'pre_checkins'
 };
 
 const handleError = (error: any, context: string) => {
@@ -79,7 +78,6 @@ export const storageService = {
       if (c.nome) payload.nome = c.nome;
       if (c.sobrenome) payload.sobrenome = c.sobrenome;
       if (c.dataNascimento) payload.data_nascimento = c.dataNascimento;
-      // Fix: Use c.responsavelNome instead of c.responsavel_nome to match the Crianca interface
       if (c.responsavelNome) payload.responsavel_nome = c.responsavelNome;
       if (c.whatsapp) payload.whatsapp = c.whatsapp;
       if (c.observacoes !== undefined) payload.observacoes = c.observacoes;
@@ -113,7 +111,7 @@ export const storageService = {
       if (!data) return null;
       return {
         id: data.id, 
-        tipo: data.tipo, // Corrigido de data.id para data.tipo
+        tipo: data.tipo,
         tipoManual: data.tipo_manual, 
         data: data.data,
         horaInicio: data.hora_inicio, 
@@ -187,7 +185,6 @@ export const storageService = {
 
   addCheckin: async (c: Omit<CheckIn, 'id'>) => {
     try {
-      // Re-validação rigorosa e atômica no banco antes de inserir
       const { data: existing, error: checkError } = await supabase.from(TABLES.CHECKINS)
         .select('id')
         .eq('id_crianca', c.idCrianca)
@@ -200,7 +197,6 @@ export const storageService = {
         throw new Error("ALREADY_PRESENT");
       }
 
-      // Fix: Use c.horaEntrada instead of c.hora_entrada to match the CheckIn interface
       const { error } = await supabase.from(TABLES.CHECKINS).insert([{
         id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, status: 'presente'
       }]);
@@ -213,7 +209,6 @@ export const storageService = {
       const payload: any = {};
       if (updated.status) payload.status = updated.status;
       if (updated.horaSaida) payload.hora_saida = updated.horaSaida;
-      // Fixed: The property in CheckIn interface is 'quemRetirou', not 'quem_retirou'
       if (updated.quemRetirou) payload.quem_retirou = updated.quemRetirou;
       const { error } = await supabase.from(TABLES.CHECKINS).update(payload).eq('id', id);
       if (error) throw error;
@@ -275,42 +270,5 @@ export const storageService = {
     } catch (e) {
       handleError(e, 'clearPreCheckins');
     }
-  },
-
-  sendNotificacao: async (idCrianca: string, idCulto: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase.from(TABLES.NOTIFICACOES).insert([{
-        id_crianca: idCrianca,
-        id_culto: idCulto,
-        mensagem: 'Papai/Mamãe sua criança está te aguardando para o Checkout'
-      }]);
-      if (error) throw error;
-      return true;
-    } catch (e) { 
-      handleError(e, 'sendNotificacao'); 
-      return false;
-    }
-  },
-
-  clearNotificacoes: async (idCulto: string) => {
-    try {
-      const { error } = await supabase.from(TABLES.NOTIFICACOES).delete().eq('id_culto', idCulto);
-      if (error) throw error;
-    } catch (e) { 
-      console.warn("Aviso: Falha ao limpar notificações.");
-    }
-  },
-
-  subscribeToNotificacoes: (idCrianca: string, callback: (n: any) => void) => {
-    const channel = supabase.channel(`notificacao_${idCrianca}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: PROJECT_SCHEMA, 
-        table: TABLES.NOTIFICACOES,
-        filter: `id_crianca=eq.${idCrianca}` 
-      }, (payload) => {
-        callback(payload.new);
-      }).subscribe();
-    return () => { supabase.removeChannel(channel); };
   }
 };
