@@ -12,6 +12,8 @@ const CultosLista: React.FC = () => {
   const [allCheckins, setAllCheckins] = useState<CheckIn[]>([]);
   const [allKids, setAllKids] = useState<Crianca[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterMonth, setFilterMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, '0'));
+  const [filterYear, setFilterYear] = useState<string>(new Date().getFullYear().toString());
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,23 +40,66 @@ const CultosLista: React.FC = () => {
     return <div className="text-center py-20 text-purple-main font-bold">Carregando histórico...</div>;
   }
 
+  const filteredCultos = cultos.filter(culto => {
+    if (!culto.data) return false;
+    const [year, month] = culto.data.split('-');
+    return month === filterMonth && year === filterYear;
+  });
+
+  const months = [
+    { value: '01', label: 'Janeiro' },
+    { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' },
+    { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' }
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-       <header className="flex items-center justify-between">
+       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black text-purple-dark uppercase tracking-tight">Histórico</h1>
             <p className="text-xs text-gray-text font-bold opacity-60 uppercase tracking-widest">Todas as sessões registradas</p>
           </div>
-          <button 
-            onClick={() => navigate('/cultos/iniciar')}
-            className="bg-purple-main text-white p-3 rounded-xl shadow-lg hover:scale-110 transition-transform"
-          >
-             {ICONS.Plus}
-          </button>
+          <div className="flex items-center gap-3">
+            <select 
+              value={filterMonth} 
+              onChange={e => setFilterMonth(e.target.value)}
+              className="bg-white border border-gray-200 text-purple-dark font-bold py-3 px-4 rounded-xl outline-none focus:border-purple-main"
+            >
+              {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+            <select 
+              value={filterYear} 
+              onChange={e => setFilterYear(e.target.value)}
+              className="bg-white border border-gray-200 text-purple-dark font-bold py-3 px-4 rounded-xl outline-none focus:border-purple-main"
+            >
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <button 
+              onClick={() => navigate('/cultos/iniciar')}
+              className="bg-purple-main text-white p-3 rounded-xl shadow-lg hover:scale-110 transition-transform ml-2"
+            >
+               {ICONS.Plus}
+            </button>
+          </div>
        </header>
 
        <div className="space-y-3">
-          {cultos.map(culto => {
+          {filteredCultos.length === 0 ? (
+            <div className="text-center py-10 text-gray-500 font-bold">Nenhum culto encontrado neste período.</div>
+          ) : (
+            filteredCultos.map(culto => {
             const isExpanded = expandedId === culto.id;
             const sessionCheckins = allCheckins.filter(c => c.idCulto === culto.id);
 
@@ -162,7 +207,7 @@ const CultosLista: React.FC = () => {
                  )}
               </div>
             )
-          })}
+          }))}
        </div>
     </div>
   );

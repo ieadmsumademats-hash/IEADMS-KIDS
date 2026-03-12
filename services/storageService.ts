@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './supabaseConfig';
-import { Crianca, Culto, CheckIn, PreCheckIn } from '../types';
+import { Crianca, Culto, CheckIn, PreCheckIn, Responsavel } from '../types';
 
 // Sanitize configuration to prevent common "Failed to fetch" issues
 const sanitizeUrl = (url: string) => (url || "").trim().replace(/\/$/, "");
@@ -22,6 +22,26 @@ const TABLES = {
   CULTOS: 'cultos',
   CHECKINS: 'checkins',
   PRECHECKINS: 'pre_checkins'
+};
+
+export const parseResponsaveis = (nomeStr: string, whatsStr: string): Responsavel[] => {
+  if (!nomeStr) return [];
+  const nomes = nomeStr.split(' | ');
+  const whats = (whatsStr || '').split(' | ');
+  
+  return nomes.map((n, i) => {
+    const match = n.match(/(.*) \((.*)\)/);
+    if (match) {
+      return { nome: match[1].trim(), parentesco: match[2].trim(), whatsapp: whats[i] ? whats[i].trim() : '' };
+    }
+    return { nome: n.trim(), parentesco: 'Outro', whatsapp: whats[i] ? whats[i].trim() : '' };
+  });
+};
+
+export const stringifyResponsaveis = (responsaveis: Responsavel[]) => {
+  const responsavelNome = responsaveis.map(r => `${r.nome.trim()} (${r.parentesco.trim()})`).join(' | ');
+  const whatsapp = responsaveis.map(r => r.whatsapp.trim()).join(' | ');
+  return { responsavelNome, whatsapp };
 };
 
 const handleError = (error: any, context: string) => {
@@ -50,21 +70,33 @@ export const storageService = {
       if (error) throw error;
       return (data || []).map((d: any) => ({
         id: d.id, nome: d.nome, sobrenome: d.sobrenome, dataNascimento: d.data_nascimento,
-        responsavelNome: d.responsavel_nome, whatsapp: d.whatsapp, observacoes: d.observacoes, createdAt: d.created_at
+        responsavelNome: d.responsavel_nome, whatsapp: d.whatsapp, 
+        responsaveis: parseResponsaveis(d.responsavel_nome, d.whatsapp),
+        observacoes: d.observacoes, createdAt: d.created_at
       } as Crianca));
     } catch (e) { handleError(e, 'getCriancas'); return []; }
   },
 
   addCrianca: async (c: Omit<Crianca, 'id'>) => {
     try {
+      let respNome = c.responsavelNome;
+      let whats = c.whatsapp;
+      if (c.responsaveis && c.responsaveis.length > 0) {
+        const str = stringifyResponsaveis(c.responsaveis);
+        respNome = str.responsavelNome;
+        whats = str.whatsapp;
+      }
+
       const { data, error } = await supabase.from(TABLES.CRIANCAS).insert([{
         nome: c.nome, sobrenome: c.sobrenome, data_nascimento: c.dataNascimento,
-        responsavel_nome: c.responsavelNome, whatsapp: c.whatsapp, observacoes: c.observacoes
+        responsavel_nome: respNome, whatsapp: whats, observacoes: c.observacoes
       }]).select();
       if (error) throw error;
       return {
         id: data[0].id, nome: data[0].nome, sobrenome: data[0].sobrenome, dataNascimento: data[0].data_nascimento,
-        responsavelNome: data[0].responsavel_nome, whatsapp: data[0].whatsapp, observacoes: data[0].observacoes, createdAt: data[0].created_at
+        responsavelNome: data[0].responsavel_nome, whatsapp: data[0].whatsapp, 
+        responsaveis: parseResponsaveis(data[0].responsavel_nome, data[0].whatsapp),
+        observacoes: data[0].observacoes, createdAt: data[0].created_at
       } as Crianca;
     } catch (e) { handleError(e, 'addCrianca'); throw e; }
   },
@@ -75,8 +107,16 @@ export const storageService = {
       if (c.nome) payload.nome = c.nome;
       if (c.sobrenome) payload.sobrenome = c.sobrenome;
       if (c.dataNascimento) payload.data_nascimento = c.dataNascimento;
-      if (c.responsavelNome) payload.responsavel_nome = c.responsavelNome;
-      if (c.whatsapp) payload.whatsapp = c.whatsapp;
+      
+      if (c.responsaveis && c.responsaveis.length > 0) {
+        const str = stringifyResponsaveis(c.responsaveis);
+        payload.responsavel_nome = str.responsavelNome;
+        payload.whatsapp = str.whatsapp;
+      } else {
+        if (c.responsavelNome) payload.responsavel_nome = c.responsavelNome;
+        if (c.whatsapp) payload.whatsapp = c.whatsapp;
+      }
+      
       if (c.observacoes !== undefined) payload.observacoes = c.observacoes;
       const { error } = await supabase.from(TABLES.CRIANCAS).update(payload).eq('id', id);
       if (error) throw error;
@@ -85,6 +125,8 @@ export const storageService = {
 
   deleteCrianca: async (id: string) => {
     try {
+      await supabase.from(TABLES.CHECKINS).delete().eq('id_crianca', id);
+      await supabase.from(TABLES.PRE_CHECKINS).delete().eq('id_crianca', id);
       const { error } = await supabase.from(TABLES.CRIANCAS).delete().eq('id', id);
       if (error) throw error;
     } catch (e) { handleError(e, 'deleteCrianca'); throw e; }
@@ -155,7 +197,7 @@ export const storageService = {
       if (error) throw error;
       return (data || []).map((d: any) => ({
         id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, horaEntrada: d.hora_entrada,
-        horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, status: d.status
+        horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, autorizadoRetirar: d.responsaveis_autorizados, status: d.status
       } as CheckIn));
     } catch (e) { handleError(e, 'getCheckins'); return []; }
   },
@@ -166,7 +208,7 @@ export const storageService = {
       if (error) throw error;
       return (data || []).map((d: any) => ({
         id: d.id, idCrianca: d.id_crianca, idCulto: d.id_culto, horaEntrada: d.hora_entrada,
-        horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, status: d.status
+        horaSaida: d.hora_saida, quemRetirou: d.quem_retirou, autorizadoRetirar: d.responsaveis_autorizados, status: d.status
       } as CheckIn));
     } catch (e) { handleError(e, 'getAllCheckins'); return []; }
   },
@@ -193,7 +235,7 @@ export const storageService = {
       if (existing) throw new Error("ALREADY_PRESENT");
 
       const { error } = await supabase.from(TABLES.CHECKINS).insert([{
-        id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, status: 'presente'
+        id_crianca: c.idCrianca, id_culto: c.idCulto, hora_entrada: c.horaEntrada, responsaveis_autorizados: c.autorizadoRetirar, status: 'presente'
       }]);
       if (error) throw error;
     } catch (e) { handleError(e, 'addCheckin'); throw e; }
@@ -206,6 +248,7 @@ export const storageService = {
       if (updated.status) payload.status = updated.status;
       if (updated.horaSaida) payload.hora_saida = updated.horaSaida;
       if (updated.quemRetirou) payload.quem_retirou = updated.quemRetirou;
+      if (updated.autorizadoRetirar) payload.responsaveis_autorizados = updated.autorizadoRetirar;
       
       const { data, error } = await supabase
         .from(TABLES.CHECKINS)

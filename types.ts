@@ -1,6 +1,12 @@
 
 export type CultoType = 'Santa Ceia' | 'Reunião de Obreiros' | 'Umademats' | 'CIFAD' | 'Outros';
 
+export interface Responsavel {
+  nome: string;
+  whatsapp: string;
+  parentesco: string;
+}
+
 export interface Crianca {
   id: string;
   nome: string;
@@ -8,6 +14,7 @@ export interface Crianca {
   dataNascimento: string;
   responsavelNome: string;
   whatsapp: string;
+  responsaveis: Responsavel[];
   observacoes?: string;
   createdAt: string;
 }
@@ -19,6 +26,7 @@ export interface CheckIn {
   horaEntrada: string;
   horaSaida?: string;
   quemRetirou?: string;
+  autorizadoRetirar?: string;
   status: 'presente' | 'saiu';
 }
 
