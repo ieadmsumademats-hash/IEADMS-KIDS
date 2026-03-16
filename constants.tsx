@@ -20,7 +20,9 @@ import {
   LayoutDashboard,
   X,
   Pencil,
-  Trash2
+  Trash2,
+  Filter,
+  Printer
 } from 'lucide-react';
 
 export const COLORS = {
@@ -70,7 +72,9 @@ export const ICONS = {
   Dashboard: <LayoutDashboard className="w-[18px] h-[18px]" />,
   X: <X className="w-[18px] h-[18px]" />,
   Edit: <Pencil className="w-[18px] h-[18px]" />,
-  Trash: <Trash2 className="w-[18px] h-[18px]" />
+  Trash: <Trash2 className="w-[18px] h-[18px]" />,
+  Filter: <Filter className="w-[18px] h-[18px]" />,
+  Printer: <Printer className="w-[18px] h-[18px]" />
 };
 
 export const CULTO_TYPES: string[] = [

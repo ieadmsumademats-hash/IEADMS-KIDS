@@ -44,9 +44,9 @@ const Estatisticas: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-       <header>
+       <header className="text-center sm:text-left">
           <h1 className="text-3xl font-black text-purple-dark uppercase tracking-tight">Estatísticas</h1>
-          <p className="text-gray-text text-xs font-bold opacity-60 uppercase tracking-widest">Desempenho Geral IEADMS</p>
+          <p className="text-gray-text text-xs font-bold opacity-60 uppercase tracking-widest hidden sm:block">Desempenho Geral IEADMS</p>
        </header>
 
        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

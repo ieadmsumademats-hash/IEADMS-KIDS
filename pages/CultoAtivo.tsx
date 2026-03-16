@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants';
+import { normalizeString } from '../utils';
 import { storageService } from '../services/storageService';
 import { Crianca, CheckIn, Culto, PreCheckIn, Responsavel } from '../types';
 
@@ -41,6 +42,9 @@ const CultoAtivo: React.FC = () => {
   const [checkinAuthorized, setCheckinAuthorized] = useState('');
   const [isOtherGuardianCheckin, setIsOtherGuardianCheckin] = useState(false);
   const [otherGuardianNameCheckin, setOtherGuardianNameCheckin] = useState('');
+
+  // Estado para sucesso do check-in
+  const [checkinSuccessData, setCheckinSuccessData] = useState<{ kid: Crianca, checkin: CheckIn } | null>(null);
 
   // Estados para novo cadastro dentro do culto
   const [isRegistering, setIsRegistering] = useState(false);
@@ -119,7 +123,6 @@ const CultoAtivo: React.FC = () => {
     setLabelData({ kid, checkin });
     setTimeout(() => {
         window.print();
-        setLabelData(null);
     }, 500);
   };
 
@@ -163,7 +166,6 @@ const CultoAtivo: React.FC = () => {
       await storageService.addCheckin(newCheck);
       const updatedCheckins = await storageService.getCheckins(id!);
       const lastCheck = updatedCheckins.find(c => c.idCrianca === pendingCheckinKid.id && c.status === 'presente');
-      if (lastCheck) triggerLabelPrint(pendingCheckinKid, lastCheck);
       
       if (pendingPreCheckinId) {
         await storageService.updatePreCheckin(pendingPreCheckinId, { 
@@ -172,10 +174,16 @@ const CultoAtivo: React.FC = () => {
         });
       }
 
+      const kidToSuccess = pendingCheckinKid;
+
       setSearchTerm('');
       setCodeQuery('KIDS-');
       setPendingCheckinKid(null);
       setPendingPreCheckinId(null);
+
+      if (lastCheck) {
+        setCheckinSuccessData({ kid: kidToSuccess, checkin: lastCheck });
+      }
     } catch (e: any) {
       if (e.message === "ALREADY_PRESENT") {
         alert(`${pendingCheckinKid.nome} já está na sala.`);
@@ -315,23 +323,22 @@ const CultoAtivo: React.FC = () => {
   };
 
   const filteredKids = searchTerm.length > 1 
-    ? allCriancas.filter(k => (k.nome + ' ' + k.sobrenome).toLowerCase().includes(searchTerm.toLowerCase()))
+    ? allCriancas.filter(k => normalizeString(k.nome + ' ' + k.sobrenome).includes(normalizeString(searchTerm)))
     : [];
 
   if (loading) return <div className="text-center py-10 text-purple-main font-bold">Carregando painel ativo...</div>;
 
   return (
     <div className="space-y-4 pb-8 -mt-2">
-      <div id="print-section" className="hidden flex-col items-center justify-center text-center p-4">
+      <div id="print-section" className="hidden flex-col items-center justify-center text-center p-0 m-0 w-full h-full">
         {labelData && (
-          <div className="flex flex-col items-center w-full">
-            <h1 className="font-black leading-tight uppercase" style={{ fontSize: '28pt' }}>{labelData.kid.nome}</h1>
-            <h2 className="font-bold leading-tight uppercase opacity-70" style={{ fontSize: '18pt' }}>{labelData.kid.sobrenome}</h2>
-            <div className="w-full border-t-2 border-black my-6"></div>
-            <p className="font-black" style={{ fontSize: '14pt' }}>Resp: {labelData.kid.responsavelNome.split(' | ')[0]}</p>
-            {labelData.checkin.autorizadoRetirar && (
-              <p className="font-bold mt-2" style={{ fontSize: '12pt' }}>Autorizado: {labelData.checkin.autorizadoRetirar}</p>
-            )}
+          <div className="flex flex-col items-center justify-center w-full h-full">
+            <h1 className="font-black leading-none uppercase text-black m-0 p-0" style={{ fontSize: '18pt' }}>
+              {labelData.kid.nome?.split(' ')[0] || ''}
+            </h1>
+            <h2 className="font-bold leading-none uppercase text-black m-0 p-0" style={{ fontSize: '14pt' }}>
+              {labelData.kid.sobrenome?.split(' ')[0] || ''}
+            </h2>
           </div>
         )}
       </div>
@@ -462,7 +469,7 @@ const CultoAtivo: React.FC = () => {
                                     {ICONS.WhatsApp}
                                 </a>
                                 <button onClick={() => triggerLabelPrint(kid!, check)} className="text-purple-main p-1.5 bg-white rounded-lg shadow-sm active:scale-90 transition-transform">
-                                  {ICONS.QrCode}
+                                  {ICONS.Printer}
                                 </button>
                                 <button onClick={() => setShowCheckout(check)} className="text-white p-1.5 bg-red-500 rounded-lg shadow-sm active:scale-90 transition-transform">
                                     {ICONS.X}
@@ -529,6 +536,29 @@ const CultoAtivo: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => { setPendingCheckinKid(null); setPendingPreCheckinId(null); }} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase">CANCELAR</button>
                   <button onClick={confirmCheckin} disabled={isOtherGuardianCheckin ? !otherGuardianNameCheckin : !checkinAuthorized} className="bg-green-500 text-white font-black py-3 rounded-xl shadow-lg disabled:opacity-50 text-[10px] uppercase">CONFIRMAR</button>
+                </div>
+            </div>
+            </div>
+        )}
+
+        {checkinSuccessData && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200">
+                <div className="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                  {ICONS.CheckCircle}
+                </div>
+                <h2 className="text-lg font-black text-purple-dark mb-2 uppercase">Check-in Concluído!</h2>
+                <p className="text-sm font-bold text-gray-500 mb-6">{checkinSuccessData.kid.nome} {checkinSuccessData.kid.sobrenome}</p>
+                
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => {
+                    triggerLabelPrint(checkinSuccessData.kid, checkinSuccessData.checkin);
+                  }} className="bg-purple-main text-white font-black py-4 rounded-xl shadow-lg text-xs uppercase flex items-center justify-center gap-2">
+                    {ICONS.Printer} Emitir Etiqueta
+                  </button>
+                  <button onClick={() => setCheckinSuccessData(null)} className="bg-gray-100 text-gray-500 font-black py-4 rounded-xl text-xs uppercase">
+                    Fechar
+                  </button>
                 </div>
             </div>
             </div>

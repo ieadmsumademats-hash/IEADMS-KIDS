@@ -36,7 +36,7 @@ const PaisArea: React.FC = () => {
           <img 
             src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
             alt="Logo IEADMS Kids" 
-            className="w-24 h-24 object-contain mix-blend-multiply" 
+            className="w-24 h-24 object-contain" 
           />
         </div>
         <div className="space-y-1">

@@ -37,7 +37,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 text-center lg:text-left">
         <div>
           <h1 className="text-3xl font-black text-purple-dark tracking-tight uppercase">Painel Principal</h1>
           <p className="text-gray-text text-sm font-medium">Controle de fluxo em tempo real.</p>
@@ -62,24 +62,24 @@ const Dashboard: React.FC = () => {
         )}
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 group hover:shadow-md transition-shadow">
-          <div className="bg-purple-main/10 w-14 h-14 rounded-2xl flex items-center justify-center text-purple-main mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="bg-white p-5 md:p-7 rounded-[2rem] shadow-sm border border-gray-100 group hover:shadow-md transition-shadow">
+          <div className="bg-purple-main/10 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-purple-main mb-3 md:mb-4">
             {ICONS.Baby}
           </div>
-          <p className="text-gray-text font-black uppercase text-xs tracking-widest mb-1">Crianças</p>
-          <p className="text-4xl font-black text-purple-dark tracking-tighter">{counts.kids}</p>
+          <p className="text-gray-text font-black uppercase text-[10px] md:text-xs tracking-widest mb-1">Crianças</p>
+          <p className="text-3xl md:text-4xl font-black text-purple-dark tracking-tighter">{counts.kids}</p>
         </div>
 
-        <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 group hover:shadow-md transition-shadow">
-          <div className="bg-yellow-main/10 w-14 h-14 rounded-2xl flex items-center justify-center text-yellow-main mb-4">
+        <div className="bg-white p-5 md:p-7 rounded-[2rem] shadow-sm border border-gray-100 group hover:shadow-md transition-shadow">
+          <div className="bg-yellow-main/10 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-yellow-main mb-3 md:mb-4">
             {ICONS.Calendar}
           </div>
-          <p className="text-gray-text font-black uppercase text-xs tracking-widest mb-1">Total Cultos</p>
-          <p className="text-4xl font-black text-purple-dark tracking-tighter">{counts.sessions}</p>
+          <p className="text-gray-text font-black uppercase text-[10px] md:text-xs tracking-widest mb-1">Total Cultos</p>
+          <p className="text-3xl md:text-4xl font-black text-purple-dark tracking-tighter">{counts.sessions}</p>
         </div>
 
-        <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col justify-center">
+        <div className="col-span-2 md:col-span-1 bg-white p-5 md:p-7 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col justify-center">
           <p className="text-gray-text font-black uppercase text-xs tracking-widest mb-3">Acesso Rápido Pais</p>
           <div className="bg-gray-light p-4 rounded-2xl flex items-center gap-3 border-2 border-dashed border-gray-200">
             <div className="bg-white p-2.5 rounded-xl shadow-sm text-purple-main">{ICONS.QrCode}</div>
@@ -97,19 +97,19 @@ const Dashboard: React.FC = () => {
             <button onClick={() => navigate('/cultos')} className="text-purple-main font-black text-xs bg-purple-main/10 px-4 py-2 rounded-full hover:bg-purple-main hover:text-white transition-all">Ver Histórico</button>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {counts.latest.map(culto => (
-              <div key={culto.id} className="flex items-center justify-between p-5 bg-gray-light rounded-2xl hover:bg-gray-200/50 transition-colors group">
-                <div className="flex items-center gap-5">
-                  <div className="bg-white p-3.5 rounded-xl shadow-sm text-purple-main group-hover:scale-110 transition-transform">
+              <div key={culto.id} className="flex items-center justify-between p-3 md:p-5 bg-gray-light rounded-2xl hover:bg-gray-200/50 transition-colors group">
+                <div className="flex items-center gap-3 md:gap-5">
+                  <div className="hidden md:block bg-white p-3.5 rounded-xl shadow-sm text-purple-main group-hover:scale-110 transition-transform">
                     {ICONS.Calendar}
                   </div>
                   <div>
-                    <h4 className="font-black text-purple-dark text-base">{culto.tipo === 'Outros' ? culto.tipoManual : culto.tipo}</h4>
-                    <p className="text-xs text-gray-text font-bold uppercase tracking-tight">{new Date(culto.data).toLocaleDateString()} • {culto.horaInicio}</p>
+                    <h4 className="font-black text-purple-dark text-sm md:text-base">{culto.tipo === 'Outros' ? culto.tipoManual : culto.tipo}</h4>
+                    <p className="text-[10px] md:text-xs text-gray-text font-bold uppercase tracking-tight">{new Date(culto.data).toLocaleDateString()} • {culto.horaInicio}</p>
                   </div>
                 </div>
-                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                <div className={`px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest ${
                   culto.status === 'ativo' ? 'bg-green-100 text-green-600 animate-pulse' : 'bg-gray-200 text-gray-500'
                 }`}>
                   {culto.status === 'ativo' ? 'ATIVO' : 'FINALIZADO'}

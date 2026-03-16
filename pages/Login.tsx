@@ -32,7 +32,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <img 
                 src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
                 alt="Logo" 
-                className="w-28 h-28 object-contain mix-blend-multiply" 
+                className="w-28 h-28 object-contain" 
               />
             </div>
             <h1 className="kids-font text-4xl font-bold text-purple-dark mb-2">IEADMS Kids</h1>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { ICONS } from '../constants';
+import { normalizeString } from '../utils';
 import { Crianca, Responsavel } from '../types';
 
 const formatPhone = (value: string) => {
@@ -24,6 +25,7 @@ const CriancasLista: React.FC = () => {
   const [deletingKidId, setDeletingKidId] = useState<string | null>(null);
   const [selectedKids, setSelectedKids] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const [form, setForm] = useState({
     nome: '', sobrenome: '', dataNascimento: '', observacoes: ''
@@ -140,25 +142,58 @@ const CriancasLista: React.FC = () => {
   };
 
   const filtered = kids.filter(k => 
-    (k.nome + ' ' + k.sobrenome).toLowerCase().includes(search.toLowerCase())
+    normalizeString(k.nome + ' ' + k.sobrenome).includes(normalizeString(search))
   );
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
+       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+          <div className="text-center sm:text-left">
             <h1 className="text-3xl font-black text-purple-dark uppercase tracking-tight">Crianças</h1>
-            <p className="text-sm text-gray-text font-medium">Gestão de cadastros e histórico individual.</p>
+            <p className="text-sm text-gray-text font-medium hidden sm:block">Gestão de cadastros e histórico individual.</p>
           </div>
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="bg-purple-main text-white font-black px-8 py-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 hover:scale-105 transition-all text-xs uppercase tracking-widest"
-          >
-             {ICONS.Plus} Novo Cadastro
-          </button>
+          <div className="flex items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
+            <button 
+              onClick={() => setIsAdding(true)}
+              className="bg-purple-main text-white font-black px-4 sm:px-8 py-3 sm:py-4 rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:scale-105 transition-all text-[10px] sm:text-xs uppercase tracking-widest flex-1 sm:flex-none"
+            >
+               {ICONS.Plus} Novo Cadastro
+            </button>
+            
+            <div className="relative sm:hidden">
+              <button 
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="bg-white text-purple-main font-black p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors"
+              >
+                {ICONS.Filter}
+              </button>
+              {showMobileFilters && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white p-4 rounded-2xl shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="relative w-full">
+                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 scale-75">{ICONS.Search}</span>
+                     <input 
+                      type="text"
+                      placeholder="Buscar nome..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-light border-2 border-transparent focus:border-purple-main outline-none font-bold text-sm"
+                     />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={() => selectedKids.length > 0 && setShowBulkDeleteConfirm(true)}
+              disabled={selectedKids.length === 0}
+              className={`sm:hidden font-black p-3 rounded-2xl shadow-sm flex items-center justify-center transition-colors ${selectedKids.length > 0 ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            >
+              {ICONS.Trash}
+            </button>
+          </div>
        </header>
 
-       <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex gap-4 items-center">
+       <div className="hidden sm:flex bg-white p-5 rounded-3xl shadow-sm border border-gray-100 gap-4 items-center">
           <div className="relative w-full">
              <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400">{ICONS.Search}</span>
              <input 
@@ -183,15 +218,15 @@ const CriancasLista: React.FC = () => {
        ) : (
          <div className="flex flex-col gap-3">
             {filtered.map(kid => (
-              <div key={kid.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4 hover:border-purple-main/30 hover:shadow-md transition-all">
+              <div key={kid.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 flex items-center gap-3 sm:gap-4 hover:border-purple-main/30 hover:shadow-md transition-all">
                  <input 
                    type="checkbox" 
                    checked={selectedKids.includes(kid.id)} 
                    onChange={() => toggleSelectKid(kid.id)} 
-                   className="w-5 h-5 accent-purple-main cursor-pointer" 
+                   className="w-4 h-4 sm:w-5 sm:h-5 accent-purple-main cursor-pointer" 
                  />
                  <span 
-                   className="font-black text-purple-dark text-lg cursor-pointer hover:underline flex-1" 
+                   className="font-black text-purple-dark text-base sm:text-lg cursor-pointer hover:underline flex-1" 
                    onClick={() => handleEdit(kid)}
                  >
                    {kid.nome} {kid.sobrenome}

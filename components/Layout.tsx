@@ -22,6 +22,14 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const fetchActive = async () => {
+      const culto = await storageService.getActiveCulto();
+      setActiveCulto(culto);
+    };
+    fetchActive();
+  }, [location.pathname]);
+
   const menuItems = [
     { label: 'Painel', path: '/', icon: ICONS.Dashboard },
     { label: 'Crianças', path: '/criancas', icon: ICONS.Baby },
@@ -42,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
               <img 
                 src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
                 alt="Logo" 
-                className="w-12 h-12 object-contain mix-blend-multiply" 
+                className="w-12 h-12 object-contain" 
               />
             </div>
             <div>
@@ -103,7 +111,7 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
             <img 
               src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
               alt="Logo" 
-              className="w-9 h-9 object-contain mix-blend-multiply" 
+              className="w-9 h-9 object-contain" 
             />
           </div>
           <span className="kids-font font-bold text-sm uppercase tracking-tight">IEADMS Kids</span>
@@ -111,27 +119,38 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         <button onClick={onLogout} className="text-white/60 p-1 scale-90">{ICONS.LogOut}</button>
       </header>
 
-      <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 max-w-[1400px] mx-auto w-full">
+      <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6 max-w-[1400px] mx-auto w-full">
         {children}
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-50 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-        {menuItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex flex-col items-center gap-0.5 transition-colors ${
-                isActive ? 'text-purple-main' : 'text-gray-400'
-              }`}
-            >
-              <div className="scale-75">{item.icon}</div>
-              <span className="text-[8px] font-black uppercase tracking-tight">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col">
+        {activeCulto && (
+          <div 
+            onClick={() => navigate(`/cultos/ativo/${activeCulto.id}`)}
+            className="bg-green-500 text-white text-center py-1.5 px-4 text-[10px] font-black uppercase tracking-widest shadow-md cursor-pointer flex items-center justify-center gap-2"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            Culto ativo - {activeCulto.tipo === 'Outros' ? activeCulto.tipoManual : activeCulto.tipo}
+          </div>
+        )}
+        <nav className="bg-white border-t border-gray-100 flex justify-around py-2 px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex flex-col items-center gap-0.5 transition-colors ${
+                  isActive ? 'text-purple-main' : 'text-gray-400'
+                }`}
+              >
+                <div className="scale-75">{item.icon}</div>
+                <span className="text-[8px] font-black uppercase tracking-tight">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
     </div>
   );
 };

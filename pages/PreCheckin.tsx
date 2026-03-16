@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ICONS } from '../constants';
+import { normalizeString } from '../utils';
 import { storageService } from '../services/storageService';
 import { PreCheckIn, Crianca, Culto, CheckIn } from '../types';
 
@@ -39,7 +40,7 @@ const PreCheckin: React.FC = () => {
   }, []);
 
   const filtered = search.length > 1 
-    ? kids.filter(k => (k.nome + ' ' + k.sobrenome).toLowerCase().includes(search.toLowerCase()))
+    ? kids.filter(k => normalizeString(k.nome + ' ' + k.sobrenome).includes(normalizeString(search)))
     : [];
 
   const handleSelect = async (kidId: string) => {

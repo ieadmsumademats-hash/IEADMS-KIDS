@@ -66,12 +66,12 @@ const CultosLista: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <h1 className="text-3xl font-black text-purple-dark uppercase tracking-tight">Histórico</h1>
-            <p className="text-xs text-gray-text font-bold opacity-60 uppercase tracking-widest">Todas as sessões registradas</p>
+            <p className="text-xs text-gray-text font-bold opacity-60 uppercase tracking-widest hidden sm:block">Todas as sessões registradas</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center sm:justify-end gap-3 w-full sm:w-auto">
             <select 
               value={filterMonth} 
               onChange={e => setFilterMonth(e.target.value)}
