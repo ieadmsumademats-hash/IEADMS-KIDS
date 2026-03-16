@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants';
 import { normalizeString } from '../utils';
@@ -116,15 +116,15 @@ const CultoAtivo: React.FC = () => {
     };
   }, [id, navigate]);
 
-  const activeCheckins = checkins.filter(c => c.status === 'presente');
-  const finishedCheckins = checkins.filter(c => c.status === 'saiu');
+  const activeCheckins = useMemo(() => checkins.filter(c => c.status === 'presente'), [checkins]);
+  const finishedCheckins = useMemo(() => checkins.filter(c => c.status === 'saiu'), [checkins]);
 
-  const triggerLabelPrint = (kid: Crianca, checkin: CheckIn) => {
+  const triggerLabelPrint = useCallback((kid: Crianca, checkin: CheckIn) => {
     setLabelData({ kid, checkin });
     setTimeout(() => {
         window.print();
-    }, 500);
-  };
+    }, 50);
+  }, []);
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.toUpperCase();
@@ -164,8 +164,7 @@ const CultoAtivo: React.FC = () => {
     };
     try {
       await storageService.addCheckin(newCheck);
-      const updatedCheckins = await storageService.getCheckins(id!);
-      const lastCheck = updatedCheckins.find(c => c.idCrianca === pendingCheckinKid.id && c.status === 'presente');
+      const lastCheck = { ...newCheck, id: 'temp' } as CheckIn;
       
       if (pendingPreCheckinId) {
         await storageService.updatePreCheckin(pendingPreCheckinId, { 
@@ -181,9 +180,7 @@ const CultoAtivo: React.FC = () => {
       setPendingCheckinKid(null);
       setPendingPreCheckinId(null);
 
-      if (lastCheck) {
-        setCheckinSuccessData({ kid: kidToSuccess, checkin: lastCheck });
-      }
+      setCheckinSuccessData({ kid: kidToSuccess, checkin: lastCheck });
     } catch (e: any) {
       if (e.message === "ALREADY_PRESENT") {
         alert(`${pendingCheckinKid.nome} já está na sala.`);
@@ -322,15 +319,25 @@ const CultoAtivo: React.FC = () => {
     }
   };
 
-  const filteredKids = searchTerm.length > 1 
-    ? allCriancas.filter(k => normalizeString(k.nome + ' ' + k.sobrenome).includes(normalizeString(searchTerm)))
-    : [];
+  const allCriancasNormalized = useMemo(() => {
+    return allCriancas.map(k => ({
+      ...k,
+      normalizedFullName: normalizeString(`${k.nome} ${k.sobrenome}`)
+    }));
+  }, [allCriancas]);
+
+  const normalizedSearchTerm = useMemo(() => normalizeString(searchTerm), [searchTerm]);
+
+  const filteredKids = useMemo(() => {
+    if (searchTerm.length <= 1) return [];
+    return allCriancasNormalized.filter(k => k.normalizedFullName.includes(normalizedSearchTerm));
+  }, [allCriancasNormalized, searchTerm, normalizedSearchTerm]);
 
   if (loading) return <div className="text-center py-10 text-purple-main font-bold">Carregando painel ativo...</div>;
 
   return (
-    <div className="space-y-4 pb-8 -mt-2">
-      <div id="print-section" className="hidden flex-col items-center justify-center text-center p-0 m-0 w-full h-full">
+    <div className="print:p-0 print:m-0 print:space-y-0 space-y-4 pb-8 -mt-2">
+      <div id="print-section" className="hidden print:flex flex-col items-center justify-center text-center p-0 m-0 w-[50mm] h-[15mm] overflow-hidden">
         {labelData && (
           <div className="flex flex-col items-center justify-center w-full h-full">
             <h1 className="font-black leading-none uppercase text-black m-0 p-0" style={{ fontSize: '18pt' }}>
@@ -484,7 +491,7 @@ const CultoAtivo: React.FC = () => {
         </div>
 
         {pendingCheckinKid && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
+            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200">
                 <h2 className="text-sm font-black text-purple-dark mb-4 uppercase">Quem poderá retirar?</h2>
                 <p className="text-xs font-bold text-gray-500 mb-4">{pendingCheckinKid.nome} {pendingCheckinKid.sobrenome}</p>
@@ -542,7 +549,7 @@ const CultoAtivo: React.FC = () => {
         )}
 
         {checkinSuccessData && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
+            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200">
                 <div className="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
                   {ICONS.CheckCircle}
@@ -565,7 +572,7 @@ const CultoAtivo: React.FC = () => {
         )}
 
         {showCheckout && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
+            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200">
                 <h2 className="text-sm font-black text-purple-dark mb-4 uppercase">Quem retirou a criança?</h2>
                 
@@ -639,7 +646,7 @@ const CultoAtivo: React.FC = () => {
         )}
 
         {showEndConfirm && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-red-900/60 backdrop-blur-sm">
+            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-red-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center">
                 <h2 className="text-sm font-black text-red-600 mb-2 uppercase">Encerrar Sessão?</h2>
                 <div className="grid grid-cols-2 gap-2">
@@ -651,7 +658,7 @@ const CultoAtivo: React.FC = () => {
         )}
 
         {isRegistering && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/80 backdrop-blur-sm">
+          <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/80 backdrop-blur-sm">
             <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in duration-300">
               {registrationSuccess ? (
                 <div className="text-center py-8">

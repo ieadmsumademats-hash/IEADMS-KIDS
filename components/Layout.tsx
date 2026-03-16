@@ -38,12 +38,12 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
   ];
 
   if (!isAdmin || location.pathname.startsWith('/pais') || location.pathname === '/login') {
-    return <div className="min-h-screen bg-gray-light font-sans">{children}</div>;
+    return <div className="min-h-screen bg-gray-light font-sans print:min-h-0 print:bg-transparent">{children}</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-light flex flex-col md:flex-row">
-      <aside className="hidden md:flex flex-col w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
+    <div className="min-h-screen bg-gray-light print:bg-transparent flex flex-col md:flex-row print:block print:min-h-0">
+      <aside className="print:hidden hidden md:flex flex-col w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
         <div className="p-6 border-b border-purple-main/20">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center transition-transform hover:scale-110">
@@ -105,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         </button>
       </aside>
 
-      <header className="md:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
+      <header className="print:hidden md:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
             <img 
@@ -119,11 +119,11 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         <button onClick={onLogout} className="text-white/60 p-1 scale-90">{ICONS.LogOut}</button>
       </header>
 
-      <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6 max-w-[1400px] mx-auto w-full">
+      <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6 max-w-[1400px] mx-auto w-full print:p-0 print:m-0 print:max-w-none print:w-auto">
         {children}
       </main>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col">
+      <div className="print:hidden md:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col">
         {activeCulto && (
           <div 
             onClick={() => navigate(`/cultos/ativo/${activeCulto.id}`)}

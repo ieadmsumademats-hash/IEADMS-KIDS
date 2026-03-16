@@ -78,14 +78,19 @@
 
         /* PRINT STYLES - Post-it Label */
         @media print {
-            body * {
-                visibility: hidden;
+            html, body {
+                width: 50mm;
+                height: 15mm;
+                margin: 0;
+                padding: 0;
+                background-color: white;
             }
-            #print-section, #print-section * {
-                visibility: visible;
+            .print\:hidden {
+                display: none !important;
             }
             #print-section {
-                position: absolute;
+                display: flex !important;
+                position: fixed;
                 left: 0;
                 top: 0;
                 width: 50mm;
@@ -93,12 +98,14 @@
                 padding: 0;
                 margin: 0;
                 border: none;
-                display: flex !important;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
                 text-align: center;
                 overflow: hidden;
+                page-break-after: avoid;
+                page-break-before: avoid;
+                page-break-inside: avoid;
             }
             @page {
                 size: 50mm 15mm;
