@@ -56,7 +56,7 @@ const PaisArea: React.FC = () => {
             disabled={!activeCulto}
             className={`w-full relative overflow-hidden p-6 rounded-[2rem] text-left transition-all transform active:scale-95 shadow-xl flex items-center justify-between border-b-6 ${
               activeCulto 
-                ? 'bg-white text-purple-dark border-purple-200' 
+                ? 'bg-yellow-main text-purple-dark border-yellow-600 hover:bg-yellow-400' 
                 : 'bg-white/50 text-purple-dark/50 border-white/20 cursor-not-allowed grayscale'
             }`}
           >
@@ -69,13 +69,13 @@ const PaisArea: React.FC = () => {
 
           <button 
             onClick={() => navigate('/pais/cadastro')}
-            className="w-full group relative overflow-hidden p-6 rounded-[2rem] text-left transition-all transform active:scale-95 shadow-xl flex items-center justify-between bg-white border-b-6 border-yellow-main"
+            className="w-full group relative overflow-hidden p-6 rounded-[2rem] text-left transition-all transform active:scale-95 shadow-xl flex items-center justify-between bg-yellow-main border-b-6 border-yellow-600 hover:bg-yellow-400"
           >
             <div className="relative z-10 flex-1">
               <h2 className="text-2xl font-black text-purple-dark mb-1 uppercase tracking-tighter">CADASTRAR CRIANÇA</h2>
-              <p className="text-xs font-bold text-gray-text">Primeira vez conosco? Cadastre aqui.</p>
+              <p className="text-xs font-bold text-purple-dark/80">Primeira vez conosco? Cadastre aqui.</p>
             </div>
-            <div className="bg-yellow-main text-purple-dark p-4 rounded-2xl relative z-10">{ICONS.Plus}</div>
+            <div className="bg-purple-main text-white p-4 rounded-2xl relative z-10">{ICONS.Plus}</div>
           </button>
 
           {!activeCulto && !error && (

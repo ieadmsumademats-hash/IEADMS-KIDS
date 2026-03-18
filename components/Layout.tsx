@@ -43,65 +43,69 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gray-light print:bg-transparent flex flex-col md:flex-row print:block print:min-h-0">
-      <aside className="print:hidden hidden md:flex flex-col w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40">
-        <div className="p-6 border-b border-purple-main/20">
+      <aside className="print:hidden hidden md:flex flex-col w-20 lg:w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40 transition-all duration-300">
+        <div className="p-4 lg:p-6 border-b border-purple-main/20 flex justify-center lg:justify-start">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center transition-transform hover:scale-110">
               <img 
                 src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
                 alt="Logo" 
-                className="w-12 h-12 object-contain" 
+                className="w-10 h-10 lg:w-12 lg:h-12 object-contain" 
               />
             </div>
-            <div>
+            <div className="hidden lg:block">
               <h1 className="kids-font text-xl font-bold leading-tight text-white">IEADMS</h1>
               <span className="text-yellow-main font-black tracking-widest text-[10px] uppercase">Culto Kids</span>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 py-6 px-4 space-y-2">
+        <nav className="flex-1 py-6 px-2 lg:px-4 space-y-2">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm lg:text-base ${
+                title={item.label}
+                className={`flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-5 lg:py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm lg:text-base ${
                   isActive 
                     ? 'bg-purple-main text-white shadow-lg scale-[1.02]' 
                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <span className={`${isActive ? 'text-yellow-main' : 'opacity-80'} transition-transform duration-300`}>{item.icon}</span>
-                {item.label}
+                <span className="hidden lg:block">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {activeCulto && (
-          <div className="m-4 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl">
-            <div className="flex items-center gap-2 text-green-400 mb-1 text-[9px] font-black uppercase tracking-widest">
+          <div className="m-2 lg:m-4 p-2 lg:p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col items-center lg:items-stretch text-center lg:text-left">
+            <div className="flex items-center justify-center lg:justify-start gap-2 text-green-400 mb-1 text-[9px] font-black uppercase tracking-widest">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Culto Ativo
+              <span className="hidden lg:inline">Culto Ativo</span>
             </div>
-            <p className="text-xs font-black mb-3 text-white truncate">{activeCulto.tipo}</p>
+            <p className="hidden lg:block text-xs font-black mb-3 text-white truncate">{activeCulto.tipo}</p>
             <button 
               onClick={() => navigate(`/cultos/ativo/${activeCulto.id}`)}
-              className="w-full bg-green-600 hover:bg-green-500 text-white py-1.5 rounded-lg text-[9px] font-black transition-colors uppercase"
+              title="Abrir Culto Ativo"
+              className="w-full bg-green-600 hover:bg-green-500 text-white py-1.5 rounded-lg text-[9px] font-black transition-colors uppercase flex justify-center items-center"
             >
-              ABRIR
+              <span className="hidden lg:inline">ABRIR</span>
+              <span className="lg:hidden tracking-widest">IR</span>
             </button>
           </div>
         )}
 
         <button 
           onClick={onLogout}
-          className="m-6 flex items-center gap-3 text-white/40 hover:text-red-400 transition-colors font-bold px-4 text-[10px]"
+          title="Sair"
+          className="m-4 lg:m-6 flex items-center justify-center lg:justify-start gap-3 text-white/40 hover:text-red-400 transition-colors font-bold p-2 lg:px-4 text-[10px]"
         >
           {ICONS.LogOut}
-          <span>Sair</span>
+          <span className="hidden lg:inline">Sair</span>
         </button>
       </aside>
 

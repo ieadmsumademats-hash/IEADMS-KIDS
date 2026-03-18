@@ -126,7 +126,7 @@ const PreCheckin: React.FC = () => {
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 block mb-3 text-white">Código de Hoje</span>
                 <span className="text-5xl md:text-6xl font-black tracking-widest block font-mono">{generated}</span>
              </div>
-             <button onClick={() => navigate('/pais')} className="w-full bg-gray-light text-purple-dark font-black py-4 rounded-2xl shadow-md text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-colors">VOLTAR AO INÍCIO</button>
+             <button onClick={() => navigate('/pais')} className="w-full bg-yellow-main text-purple-dark font-black py-4 rounded-2xl shadow-md text-[10px] uppercase tracking-widest hover:bg-yellow-400 transition-colors border-b-4 border-yellow-600">VOLTAR AO INÍCIO</button>
              
              <p className="mt-8 text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-relaxed">
                 Importante: Quando terminar o culto, apresente-se à equipe para buscar seu filho.

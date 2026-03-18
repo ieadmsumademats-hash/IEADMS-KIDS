@@ -86,7 +86,7 @@ const CriancaCadastro: React.FC = () => {
               // Ensure zoom reset by reloading if necessary or just navigating
               navigate('/pais');
             }}
-            className="w-full bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase hover:bg-purple-dark transition-colors"
+            className="w-full bg-yellow-main text-purple-dark font-black py-4 rounded-2xl shadow-xl text-xs uppercase hover:bg-yellow-400 transition-colors border-b-4 border-yellow-600"
           >
             VOLTAR AO INÍCIO
           </button>
@@ -194,7 +194,7 @@ const CriancaCadastro: React.FC = () => {
             <button 
               type="submit" 
               disabled={isSubmitting}
-              className="w-full bg-purple-main text-white font-black py-5 rounded-2xl shadow-xl hover:bg-purple-dark transition-all disabled:opacity-50 text-xs uppercase tracking-widest"
+              className="w-full bg-yellow-main text-purple-dark font-black py-5 rounded-2xl shadow-xl hover:bg-yellow-400 transition-all disabled:opacity-50 text-xs uppercase tracking-widest border-b-4 border-yellow-600"
             >
               {isSubmitting ? 'SALVANDO...' : 'FINALIZAR CADASTRO'}
             </button>
