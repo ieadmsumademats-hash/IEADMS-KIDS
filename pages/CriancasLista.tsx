@@ -27,8 +27,10 @@ const CriancasLista: React.FC = () => {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const [form, setForm] = useState({
-    nome: '', sobrenome: '', dataNascimento: '', observacoes: ''
+  const [form, setForm] = useState<{
+    nome: string; sobrenome: string; dataNascimento: string; observacoes: string; sexo: 'F' | 'M'
+  }>({
+    nome: '', sobrenome: '', dataNascimento: '', observacoes: '', sexo: 'F'
   });
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([
     { nome: '', whatsapp: '', parentesco: 'Pai' }
@@ -75,7 +77,8 @@ const CriancasLista: React.FC = () => {
       nome: kid.nome,
       sobrenome: kid.sobrenome,
       dataNascimento: kid.dataNascimento,
-      observacoes: kid.observacoes || ''
+      observacoes: kid.observacoes || '',
+      sexo: kid.sexo || 'F'
     });
     setResponsaveis(kid.responsaveis && kid.responsaveis.length > 0 ? kid.responsaveis : [{ nome: kid.responsavelNome, whatsapp: kid.whatsapp, parentesco: 'Outro' }]);
     setIsAdding(true);
@@ -137,7 +140,7 @@ const CriancasLista: React.FC = () => {
   const closeModal = () => {
     setIsAdding(false);
     setEditingKidId(null);
-    setForm({ nome: '', sobrenome: '', dataNascimento: '', observacoes: '' });
+    setForm({ nome: '', sobrenome: '', dataNascimento: '', observacoes: '', sexo: 'F' });
     setResponsaveis([{ nome: '', whatsapp: '', parentesco: 'Pai' }]);
   };
 
@@ -225,6 +228,13 @@ const CriancasLista: React.FC = () => {
                    onChange={() => toggleSelectKid(kid.id)} 
                    className="w-4 h-4 sm:w-5 sm:h-5 accent-purple-main cursor-pointer" 
                  />
+                 <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                   <img 
+                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${kid.nome}&backgroundColor=${kid.sexo === 'F' ? 'ffdfbf' : 'b6e3f4'}`} 
+                     alt={kid.nome} 
+                     className="w-full h-full object-cover"
+                   />
+                 </div>
                  <span 
                    className="font-black text-purple-dark text-base sm:text-lg cursor-pointer hover:underline flex-1" 
                    onClick={() => handleEdit(kid)}
@@ -251,6 +261,46 @@ const CriancasLista: React.FC = () => {
                 {editingKidId ? 'Editar Cadastro' : 'Novo Cadastro Geral'}
                </h2>
                <form onSubmit={handleSave} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4 w-full mb-8">
+                    <button
+                      type="button"
+                      onClick={() => setForm({...form, sexo: 'F'})}
+                      className={`relative flex flex-col items-center p-4 rounded-2xl transition-all duration-300 border-b-4 ${
+                        form.sexo === 'F' 
+                          ? 'bg-pink-100 border-pink-400 shadow-md transform scale-105 ring-2 ring-pink-300 ring-offset-2' 
+                          : 'bg-gray-50 border-gray-200 hover:bg-pink-50 hover:border-pink-200'
+                      }`}
+                    >
+                      <div className={`w-16 h-16 mb-2 rounded-full bg-white shadow-inner overflow-hidden border-2 transition-colors ${form.sexo === 'F' ? 'border-pink-400' : 'border-gray-200'}`}>
+                        <img 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${form.nome || 'Mia'}&backgroundColor=ffdfbf`}
+                          alt="Menina" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className={`kids-font text-lg font-black ${form.sexo === 'F' ? 'text-pink-600' : 'text-gray-400'}`}>Menina</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setForm({...form, sexo: 'M'})}
+                      className={`relative flex flex-col items-center p-4 rounded-2xl transition-all duration-300 border-b-4 ${
+                        form.sexo === 'M' 
+                          ? 'bg-blue-100 border-blue-400 shadow-md transform scale-105 ring-2 ring-blue-300 ring-offset-2' 
+                          : 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-200'
+                      }`}
+                    >
+                      <div className={`w-16 h-16 mb-2 rounded-full bg-white shadow-inner overflow-hidden border-2 transition-colors ${form.sexo === 'M' ? 'border-blue-400' : 'border-gray-200'}`}>
+                        <img 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${form.nome || 'Felix'}&backgroundColor=b6e3f4`}
+                          alt="Menino" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className={`kids-font text-lg font-black ${form.sexo === 'M' ? 'text-blue-600' : 'text-gray-400'}`}>Menino</span>
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-gray-400 px-1">Nome</label>

@@ -12,6 +12,7 @@ export interface Crianca {
   nome: string;
   sobrenome: string;
   dataNascimento: string;
+  sexo?: 'M' | 'F';
   responsavelNome: string;
   whatsapp: string;
   responsaveis: Responsavel[];

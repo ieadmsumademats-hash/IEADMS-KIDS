@@ -42,25 +42,25 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-light print:bg-transparent flex flex-col md:flex-row print:block print:min-h-0">
-      <aside className="print:hidden hidden md:flex flex-col w-20 lg:w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40 transition-all duration-300">
-        <div className="p-4 lg:p-6 border-b border-purple-main/20 flex justify-center lg:justify-start">
+    <div className="min-h-screen bg-gray-light print:bg-transparent flex flex-col lg:flex-row print:block print:min-h-0">
+      <aside className="print:hidden hidden lg:flex flex-col w-64 bg-purple-dark text-white sticky top-0 h-screen shadow-2xl z-40 transition-all duration-300">
+        <div className="p-6 border-b border-purple-main/20 flex justify-start">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center transition-transform hover:scale-110">
               <img 
                 src="https://raw.githubusercontent.com/ieadmsumademats-hash/imagens/main/logokids.PNG" 
                 alt="Logo" 
-                className="w-10 h-10 lg:w-12 lg:h-12 object-contain" 
+                className="w-12 h-12 object-contain" 
               />
             </div>
-            <div className="hidden lg:block">
+            <div>
               <h1 className="kids-font text-xl font-bold leading-tight text-white">IEADMS</h1>
               <span className="text-yellow-main font-black tracking-widest text-[10px] uppercase">Culto Kids</span>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 py-6 px-2 lg:px-4 space-y-2">
+        <nav className="flex-1 py-6 px-4 space-y-2">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -68,33 +68,32 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
                 key={item.path}
                 to={item.path}
                 title={item.label}
-                className={`flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-5 lg:py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm lg:text-base ${
+                className={`flex items-center justify-start gap-4 p-3 px-5 py-3.5 rounded-2xl transition-all duration-300 font-bold text-base ${
                   isActive 
                     ? 'bg-purple-main text-white shadow-lg scale-[1.02]' 
                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <span className={`${isActive ? 'text-yellow-main' : 'opacity-80'} transition-transform duration-300`}>{item.icon}</span>
-                <span className="hidden lg:block">{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {activeCulto && (
-          <div className="m-2 lg:m-4 p-2 lg:p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col items-center lg:items-stretch text-center lg:text-left">
-            <div className="flex items-center justify-center lg:justify-start gap-2 text-green-400 mb-1 text-[9px] font-black uppercase tracking-widest">
+          <div className="m-4 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col items-stretch text-left">
+            <div className="flex items-center justify-start gap-2 text-green-400 mb-1 text-[9px] font-black uppercase tracking-widest">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="hidden lg:inline">Culto Ativo</span>
+              <span>Culto Ativo</span>
             </div>
-            <p className="hidden lg:block text-xs font-black mb-3 text-white truncate">{activeCulto.tipo}</p>
+            <p className="text-xs font-black mb-3 text-white truncate">{activeCulto.tipo}</p>
             <button 
               onClick={() => navigate(`/cultos/ativo/${activeCulto.id}`)}
               title="Abrir Culto Ativo"
               className="w-full bg-green-600 hover:bg-green-500 text-white py-1.5 rounded-lg text-[9px] font-black transition-colors uppercase flex justify-center items-center"
             >
-              <span className="hidden lg:inline">ABRIR</span>
-              <span className="lg:hidden tracking-widest">IR</span>
+              <span>ABRIR</span>
             </button>
           </div>
         )}
@@ -102,14 +101,14 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         <button 
           onClick={onLogout}
           title="Sair"
-          className="m-4 lg:m-6 flex items-center justify-center lg:justify-start gap-3 text-white/40 hover:text-red-400 transition-colors font-bold p-2 lg:px-4 text-[10px]"
+          className="m-6 flex items-center justify-start gap-3 text-white/40 hover:text-red-400 transition-colors font-bold px-4 text-[10px]"
         >
           {ICONS.LogOut}
-          <span className="hidden lg:inline">Sair</span>
+          <span>Sair</span>
         </button>
       </aside>
 
-      <header className="print:hidden md:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
+      <header className="print:hidden lg:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
             <img 
@@ -123,11 +122,11 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         <button onClick={onLogout} className="text-white/60 p-1 scale-90">{ICONS.LogOut}</button>
       </header>
 
-      <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6 max-w-[1400px] mx-auto w-full print:p-0 print:m-0 print:max-w-none print:w-auto">
+      <main className="flex-1 p-4 md:p-6 pb-24 lg:pb-6 max-w-[1400px] mx-auto w-full print:p-0 print:m-0 print:max-w-none print:w-auto">
         {children}
       </main>
 
-      <div className="print:hidden md:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col">
+      <div className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col">
         {activeCulto && (
           <div 
             onClick={() => navigate(`/cultos/ativo/${activeCulto.id}`)}

@@ -54,28 +54,28 @@ const PaisArea: React.FC = () => {
           <button 
             onClick={() => navigate('/pais/pre-checkin')}
             disabled={!activeCulto}
-            className={`w-full relative overflow-hidden p-6 rounded-[2rem] text-left transition-all transform active:scale-95 shadow-xl flex items-center justify-between border-b-6 ${
+            className={`w-full relative overflow-hidden p-6 rounded-[2.5rem] text-left transition-all shadow-xl flex items-center justify-between border-b-8 ${
               activeCulto 
-                ? 'bg-yellow-main text-purple-dark border-yellow-600 hover:bg-yellow-400' 
+                ? 'bg-yellow-main text-purple-dark border-yellow-600 hover:bg-yellow-400 active:border-b-0 active:translate-y-2' 
                 : 'bg-yellow-main/50 text-purple-dark/50 border-yellow-main/20 cursor-not-allowed grayscale'
             }`}
           >
             <div className="relative z-10 flex-1">
-              <h2 className="text-2xl font-black mb-1 uppercase tracking-tighter">PRÉ-CHECK-IN</h2>
-              <p className="text-xs font-bold opacity-80">Já cadastrado? Gere seu código.</p>
+              <h2 className="kids-font text-3xl font-black mb-1 uppercase tracking-tight">Pré-Check-in</h2>
+              <p className="text-sm font-bold opacity-80">Já cadastrado? Gere seu código.</p>
             </div>
-            <div className={`p-4 rounded-2xl relative z-10 ${activeCulto ? 'bg-purple-main text-white' : 'bg-purple-main/20 text-white/50'}`}>{ICONS.QrCode}</div>
+            <div className={`p-4 rounded-full relative z-10 shadow-inner border-4 ${activeCulto ? 'bg-purple-main text-white border-purple-400' : 'bg-purple-main/20 text-white/50 border-purple-main/10'}`}>{ICONS.QrCode}</div>
           </button>
 
           <button 
             onClick={() => navigate('/pais/cadastro')}
-            className="w-full group relative overflow-hidden p-6 rounded-[2rem] text-left transition-all transform active:scale-95 shadow-xl flex items-center justify-between bg-yellow-main border-b-6 border-yellow-600 hover:bg-yellow-400"
+            className="w-full group relative overflow-hidden p-6 rounded-[2.5rem] text-left transition-all shadow-xl flex items-center justify-between bg-yellow-main border-b-8 border-yellow-600 hover:bg-yellow-400 active:border-b-0 active:translate-y-2"
           >
             <div className="relative z-10 flex-1">
-              <h2 className="text-2xl font-black text-purple-dark mb-1 uppercase tracking-tighter">CADASTRAR CRIANÇA</h2>
-              <p className="text-xs font-bold text-purple-dark/80">Primeira vez conosco? Cadastre aqui.</p>
+              <h2 className="kids-font text-3xl font-black text-purple-dark mb-1 uppercase tracking-tight">Cadastrar Criança</h2>
+              <p className="text-sm font-bold text-purple-dark/80">Primeira vez conosco? Cadastre aqui.</p>
             </div>
-            <div className="bg-purple-main text-white p-4 rounded-2xl relative z-10">{ICONS.Plus}</div>
+            <div className="bg-purple-main text-white p-4 rounded-full relative z-10 shadow-inner border-4 border-purple-400">{ICONS.Plus}</div>
           </button>
 
           {!activeCulto && !error && (
