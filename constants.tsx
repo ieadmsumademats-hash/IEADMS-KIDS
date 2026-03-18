@@ -22,7 +22,10 @@ import {
   Pencil,
   Trash2,
   Filter,
-  Printer
+  Printer,
+  Star,
+  Heart,
+  Music
 } from 'lucide-react';
 
 export const COLORS = {
@@ -74,7 +77,10 @@ export const ICONS = {
   Edit: <Pencil className="w-[18px] h-[18px]" />,
   Trash: <Trash2 className="w-[18px] h-[18px]" />,
   Filter: <Filter className="w-[18px] h-[18px]" />,
-  Printer: <Printer className="w-[18px] h-[18px]" />
+  Printer: <Printer className="w-[18px] h-[18px]" />,
+  Star: <Star className="w-[18px] h-[18px]" />,
+  Heart: <Heart className="w-[18px] h-[18px]" />,
+  Music: <Music className="w-[18px] h-[18px]" />
 };
 
 export const CULTO_TYPES: string[] = [

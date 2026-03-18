@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -12,6 +12,7 @@ import CriancaCadastro from './pages/CriancaCadastro';
 import Estatisticas from './pages/Estatisticas';
 import PaisArea from './pages/PaisArea';
 import PreCheckin from './pages/PreCheckin';
+import LoadingScreen from './components/LoadingScreen';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAdmin: boolean }> = ({ children, isAdmin }) => {
   if (!isAdmin) return <Navigate to="/login" replace />;
@@ -19,6 +20,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; isAdmin: boolean }> = 
 };
 
 const App: React.FC = () => {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     try {
       return localStorage.getItem('ieadms_v2_auth') === 'true';
@@ -42,8 +44,10 @@ const App: React.FC = () => {
   };
 
   return (
-    <Router>
-      <Layout isAdmin={isAdmin} onLogout={handleLogout}>
+    <>
+      {isInitialLoading && <LoadingScreen onComplete={() => setIsInitialLoading(false)} />}
+      <Router>
+        <Layout isAdmin={isAdmin} onLogout={handleLogout}>
         <Routes>
           {/* Rotas Públicas (Pais) */}
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
@@ -63,6 +67,7 @@ const App: React.FC = () => {
         </Routes>
       </Layout>
     </Router>
+    </>
   );
 };
 

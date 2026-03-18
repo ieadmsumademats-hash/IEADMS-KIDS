@@ -5,6 +5,7 @@ import { ICONS } from '../constants';
 import { normalizeString } from '../utils';
 import { storageService } from '../services/storageService';
 import { PreCheckIn, Crianca, Culto, CheckIn } from '../types';
+import PaisBackground from '../components/PaisBackground';
 
 const PreCheckin: React.FC = () => {
   const navigate = useNavigate();
@@ -81,18 +82,19 @@ const PreCheckin: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-20 text-purple-main font-bold text-xs">CARREGANDO...</div>;
+  if (loading) return <div className="text-center py-20 text-white font-bold text-xs bg-purple-main min-h-screen">CARREGANDO...</div>;
   if (!activeCulto) return <Navigate to="/pais" />;
 
   return (
-    <div className="min-h-screen bg-gray-light p-4 flex flex-col items-center">
-      <div className="w-full max-w-lg">
-        <button onClick={() => step === 1 ? navigate('/pais') : setStep(1)} className="mb-6 mt-2 flex items-center gap-2 text-purple-main font-black uppercase text-[10px] tracking-widest">
+    <div className="min-h-screen p-4 flex flex-col items-center relative overflow-hidden">
+      <PaisBackground />
+      <div className="w-full max-w-lg relative z-10">
+        <button onClick={() => step === 1 ? navigate('/pais') : setStep(1)} className="mb-6 mt-2 flex items-center gap-2 text-white font-black uppercase text-[10px] tracking-widest hover:text-yellow-main transition-colors">
           {ICONS.ArrowLeft} Voltar
         </button>
 
         {step === 1 ? (
-          <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border-b-6 border-purple-main animate-in slide-in-from-right duration-500">
+          <div className="bg-white rounded-[2.5rem] p-8 shadow-2xl border-b-6 border-yellow-main animate-in slide-in-from-right duration-500">
              <h2 className="text-2xl font-black text-purple-dark mb-2 uppercase tracking-tight">Buscar Filho</h2>
              <p className="text-gray-text text-xs font-bold mb-8">Digite o nome para gerar o código.</p>
              <div className="relative mb-6">
@@ -124,7 +126,7 @@ const PreCheckin: React.FC = () => {
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 block mb-3 text-white">Código de Hoje</span>
                 <span className="text-5xl md:text-6xl font-black tracking-widest block font-mono">{generated}</span>
              </div>
-             <button onClick={() => navigate('/pais')} className="w-full bg-gray-light text-purple-dark font-black py-4 rounded-2xl shadow-md text-[10px] uppercase tracking-widest">VOLTAR AO INÍCIO</button>
+             <button onClick={() => navigate('/pais')} className="w-full bg-gray-light text-purple-dark font-black py-4 rounded-2xl shadow-md text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-colors">VOLTAR AO INÍCIO</button>
              
              <p className="mt-8 text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] leading-relaxed">
                 Importante: Quando terminar o culto, apresente-se à equipe para buscar seu filho.

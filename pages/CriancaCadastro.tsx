@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ICONS } from '../constants';
 import { storageService } from '../services/storageService';
 import { Crianca, Responsavel } from '../types';
+import PaisBackground from '../components/PaisBackground';
 
 const formatPhone = (value: string) => {
   if (!value) return value;
@@ -72,8 +73,9 @@ const CriancaCadastro: React.FC = () => {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-light flex items-center justify-center p-6">
-        <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl text-center animate-in zoom-in duration-500">
+      <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+        <PaisBackground />
+        <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl text-center animate-in zoom-in duration-500 relative z-10">
           <div className="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
             {ICONS.CheckCircle}
           </div>
@@ -84,7 +86,7 @@ const CriancaCadastro: React.FC = () => {
               // Ensure zoom reset by reloading if necessary or just navigating
               navigate('/pais');
             }}
-            className="w-full bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase"
+            className="w-full bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase hover:bg-purple-dark transition-colors"
           >
             VOLTAR AO INÍCIO
           </button>
@@ -94,11 +96,12 @@ const CriancaCadastro: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-light p-4 flex flex-col items-center">
-      <div className="w-full max-w-2xl">
+    <div className="min-h-screen p-4 flex flex-col items-center relative overflow-hidden">
+      <PaisBackground />
+      <div className="w-full max-w-2xl relative z-10">
         <button 
           onClick={() => navigate('/pais')}
-          className="mb-6 mt-2 flex items-center gap-2 text-purple-main font-black uppercase text-[10px] tracking-widest"
+          className="mb-6 mt-2 flex items-center gap-2 text-white font-black uppercase text-[10px] tracking-widest hover:text-yellow-main transition-colors"
         >
           {ICONS.ArrowLeft} Voltar
         </button>
