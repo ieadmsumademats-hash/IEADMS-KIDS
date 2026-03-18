@@ -179,7 +179,7 @@ const CriancaCadastro: React.FC = () => {
                 <button 
                   type="button" 
                   onClick={addResponsavel}
-                  className="w-full border-2 border-dashed border-purple-main text-purple-main font-black py-3 rounded-2xl hover:bg-purple-50 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                  className="w-full border-2 border-dashed border-yellow-main text-yellow-600 font-black py-3 rounded-2xl hover:bg-yellow-50 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2"
                 >
                   {ICONS.Plus} Adicionar outro responsável
                 </button>

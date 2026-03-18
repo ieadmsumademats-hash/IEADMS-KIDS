@@ -38,7 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
   ];
 
   if (!isAdmin || location.pathname.startsWith('/pais') || location.pathname === '/login') {
-    return <div className="min-h-screen bg-gray-light font-sans print:min-h-0 print:bg-transparent">{children}</div>;
+    return <div className="min-h-screen bg-transparent font-sans print:min-h-0 print:bg-transparent">{children}</div>;
   }
 
   return (

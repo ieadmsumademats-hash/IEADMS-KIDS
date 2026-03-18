@@ -57,7 +57,7 @@ const PaisArea: React.FC = () => {
             className={`w-full relative overflow-hidden p-6 rounded-[2rem] text-left transition-all transform active:scale-95 shadow-xl flex items-center justify-between border-b-6 ${
               activeCulto 
                 ? 'bg-yellow-main text-purple-dark border-yellow-600 hover:bg-yellow-400' 
-                : 'bg-white/50 text-purple-dark/50 border-white/20 cursor-not-allowed grayscale'
+                : 'bg-yellow-main/50 text-purple-dark/50 border-yellow-main/20 cursor-not-allowed grayscale'
             }`}
           >
             <div className="relative z-10 flex-1">
