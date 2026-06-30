@@ -354,6 +354,15 @@ export const storageService = {
     } catch (e) { handleError(e, 'updatePreCheckin'); throw e; }
   },
 
+  deletePreCheckin: async (idCrianca: string, idCulto: string) => {
+    try {
+      const { error } = await supabase.from(TABLES.PRECHECKINS).delete()
+        .eq('id_crianca', idCrianca)
+        .eq('id_culto', idCulto);
+      if (error) throw error;
+    } catch (e) { handleError(e, 'deletePreCheckin'); }
+  },
+
   clearPreCheckins: async (idCulto: string) => {
     try {
       const { error } = await supabase.from(TABLES.PRECHECKINS).delete().eq('id_culto', idCulto);

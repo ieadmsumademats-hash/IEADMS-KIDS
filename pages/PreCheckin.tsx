@@ -198,17 +198,9 @@ const PreCheckin: React.FC = () => {
              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                 {kids.map(k => (
                   <button key={k.id} onClick={() => handleSelect(k.id)} disabled={isProcessing} className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-yellow-100 hover:border-yellow-300 rounded-[2rem] border-2 border-transparent transition-all group shadow-sm hover:shadow-md disabled:opacity-50 text-left">
-                    <div className="flex items-center gap-4">
-                       <div className="w-12 h-12 rounded-full bg-white shadow-inner overflow-hidden border-2 border-gray-200 group-hover:border-yellow-400 transition-colors flex-shrink-0">
-                         <img 
-                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${k.nome}&backgroundColor=${k.sexo === 'F' ? 'ffdfbf' : 'b6e3f4'}`} 
-                           alt={k.nome} 
-                           className="w-full h-full object-cover"
-                         />
-                       </div>
+                     <div className="flex items-center gap-4">
                        <div className="flex-1 min-w-0">
                          <p className="kids-font text-xl font-black text-purple-dark group-hover:text-purple-900 transition-colors truncate">{k.nome} {k.sobrenome}</p>
-                         <p className="text-[10px] font-bold uppercase opacity-60 tracking-widest text-gray-500 group-hover:text-purple-700 truncate">Resp: {k.responsavelNome.split(' | ')[0]}</p>
                        </div>
                     </div>
                     <div className="bg-white p-3 rounded-full text-purple-main shadow-sm group-hover:bg-yellow-main group-hover:text-purple-dark group-hover:scale-110 transition-all flex-shrink-0 ml-2">{ICONS.ChevronRight}</div>

@@ -12,6 +12,7 @@ import CriancaCadastro from './pages/CriancaCadastro';
 import Estatisticas from './pages/Estatisticas';
 import PaisArea from './pages/PaisArea';
 import PreCheckin from './pages/PreCheckin';
+import RecuperarCodigo from './pages/RecuperarCodigo';
 import LoadingScreen from './components/LoadingScreen';
 import { GlobalProgressBar } from './components/GlobalProgress';
 
@@ -55,6 +56,7 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/pais" element={<PaisArea />} />
           <Route path="/pais/pre-checkin" element={<PreCheckin />} />
+          <Route path="/pais/recuperar-codigo" element={<RecuperarCodigo />} />
           <Route path="/pais/cadastro" element={<CriancaCadastro />} />
 
           {/* Rotas Administrativas */}

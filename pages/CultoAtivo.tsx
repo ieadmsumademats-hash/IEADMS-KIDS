@@ -330,6 +330,8 @@ const CultoAtivo: React.FC = () => {
         horaSaida: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         quemRetirou: retirou
       });
+
+      await storageService.deletePreCheckin(showCheckout.idCrianca, showCheckout.idCulto);
       
       console.log("[DEBUG CHECKOUT] Chamada de serviço concluída com sucesso.");
       setShowCheckout(null);

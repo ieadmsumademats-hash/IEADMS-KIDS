@@ -68,6 +68,22 @@ const PaisArea: React.FC = () => {
           </button>
 
           <button 
+            onClick={() => navigate('/pais/recuperar-codigo')}
+            disabled={!activeCulto}
+            className={`w-full relative overflow-hidden p-6 rounded-[2.5rem] text-left transition-all shadow-xl flex items-center justify-between border-b-8 ${
+              activeCulto 
+                ? 'bg-yellow-main text-purple-dark border-yellow-600 hover:bg-yellow-400 active:border-b-0 active:translate-y-2' 
+                : 'bg-yellow-main/50 text-purple-dark/50 border-yellow-main/20 cursor-not-allowed grayscale'
+            }`}
+          >
+            <div className="relative z-10 flex-1">
+              <h2 className="kids-font text-2xl font-black mb-1 uppercase tracking-tight leading-7 mt-1">Gerar código novamente</h2>
+              <p className="text-sm font-bold opacity-80">Perdeu o código? Recupere aqui.</p>
+            </div>
+            <div className={`p-4 rounded-full relative z-10 shadow-inner border-4 ${activeCulto ? 'bg-purple-main text-white border-purple-400' : 'bg-purple-main/20 text-white/50 border-purple-main/10'}`}>{ICONS.Search}</div>
+          </button>
+
+          <button 
             onClick={() => navigate('/pais/cadastro')}
             className="w-full group relative overflow-hidden p-6 rounded-[2.5rem] text-left transition-all shadow-xl flex items-center justify-between bg-yellow-main border-b-8 border-yellow-600 hover:bg-yellow-400 active:border-b-0 active:translate-y-2"
           >
