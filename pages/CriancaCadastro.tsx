@@ -114,43 +114,38 @@ const CriancaCadastro: React.FC = () => {
               <h1 className="kids-font text-3xl font-black text-purple-dark mb-2 uppercase tracking-tight">Quem é a criança?</h1>
               <p className="text-gray-text font-bold mb-8 text-sm uppercase opacity-60">Selecione para personalizar</p>
               
-              <div className="grid grid-cols-2 gap-4 w-full mb-10">
+              <div className={`w-40 h-40 md:w-48 md:h-48 mb-8 rounded-full bg-white shadow-xl overflow-hidden border-8 transition-all duration-500 ${sexo === 'F' ? 'border-pink-400 ring-4 ring-pink-200 ring-offset-4' : 'border-blue-400 ring-4 ring-blue-200 ring-offset-4'}`}>
+                <img 
+                  src={sexo === 'F' 
+                    ? "https://api.dicebear.com/7.x/avataaars/svg?seed=Mia&backgroundColor=ffdfbf" 
+                    : "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4"} 
+                  alt={sexo === 'F' ? "Menina" : "Menino"} 
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                />
+              </div>
+
+              <div className="flex bg-gray-50 p-2 rounded-[2rem] mb-10 w-full max-w-sm shadow-inner border-2 border-gray-100">
                 <button
                   type="button"
                   onClick={() => setSexo('F')}
-                  className={`relative flex flex-col items-center p-6 rounded-[2rem] transition-all duration-300 border-b-8 ${
+                  className={`flex-1 py-4 px-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all duration-300 ${
                     sexo === 'F' 
-                      ? 'bg-pink-100 border-pink-400 shadow-xl transform scale-105 ring-4 ring-pink-300 ring-offset-4' 
-                      : 'bg-gray-50 border-gray-200 hover:bg-pink-50 hover:border-pink-200 hover:scale-105'
+                      ? 'bg-pink-400 text-white shadow-md transform scale-105' 
+                      : 'text-gray-400 hover:text-pink-400 hover:bg-pink-50'
                   }`}
                 >
-                  <div className={`w-24 h-24 mb-4 rounded-full bg-white shadow-inner overflow-hidden border-4 transition-colors ${sexo === 'F' ? 'border-pink-400' : 'border-gray-200'}`}>
-                    <img 
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mia&backgroundColor=ffdfbf" 
-                      alt="Menina" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <span className={`kids-font text-2xl font-black ${sexo === 'F' ? 'text-pink-600' : 'text-gray-400'}`}>Menina</span>
+                  Menina
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setSexo('M')}
-                  className={`relative flex flex-col items-center p-6 rounded-[2rem] transition-all duration-300 border-b-8 ${
+                  className={`flex-1 py-4 px-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all duration-300 ${
                     sexo === 'M' 
-                      ? 'bg-blue-100 border-blue-400 shadow-xl transform scale-105 ring-4 ring-blue-300 ring-offset-4' 
-                      : 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-200 hover:scale-105'
+                      ? 'bg-blue-400 text-white shadow-md transform scale-105' 
+                      : 'text-gray-400 hover:text-blue-400 hover:bg-blue-50'
                   }`}
                 >
-                  <div className={`w-24 h-24 mb-4 rounded-full bg-white shadow-inner overflow-hidden border-4 transition-colors ${sexo === 'M' ? 'border-blue-400' : 'border-gray-200'}`}>
-                    <img 
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4" 
-                      alt="Menino" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <span className={`kids-font text-2xl font-black ${sexo === 'M' ? 'text-blue-600' : 'text-gray-400'}`}>Menino</span>
+                  Menino
                 </button>
               </div>
 
@@ -158,7 +153,7 @@ const CriancaCadastro: React.FC = () => {
                 onClick={() => setStep(2)}
                 className="w-full bg-yellow-main text-purple-dark font-black py-5 rounded-[2rem] shadow-xl hover:bg-yellow-400 transition-all transform active:scale-95 text-sm uppercase tracking-widest border-b-8 border-yellow-600 flex items-center justify-center gap-3"
               >
-                CONTINUAR {ICONS.ChevronRight}
+                PROSSEGUIR {ICONS.ChevronRight}
               </button>
             </div>
           ) : (
