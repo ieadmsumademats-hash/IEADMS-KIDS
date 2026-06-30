@@ -56,14 +56,35 @@ const handleError = (error: any, context: string) => {
   }
 
   if (errorMessage.includes("Failed to fetch") || errorMessage.includes("fetch")) {
-    console.error(`❌ Erro de Conexão em ${context}: Não foi possível alcançar o servidor Supabase.`);
+    console.warn(`⚠️ Aviso de Conexão em ${context}: Não foi possível alcançar o servidor Supabase. Verifique sua internet.`, error);
   } else {
-    console.error(`❌ Erro em ${context}:`, errorMessage);
+    console.error(`❌ Erro em ${context}:`, errorMessage, error);
   }
   return null;
 };
 
 export const storageService = {
+  getCriancasByPhone: async (formattedPhone: string) => {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.CRIANCAS)
+        .select('*')
+        .ilike('whatsapp', `%${formattedPhone}%`)
+        .order('nome', { ascending: true });
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        id: d.id, nome: d.nome, sobrenome: d.sobrenome, dataNascimento: d.data_nascimento,
+        responsavelNome: d.responsavel_nome, whatsapp: d.whatsapp, 
+        responsaveis: parseResponsaveis(d.responsavel_nome, d.whatsapp),
+        observacoes: d.observacoes, 
+        neurodivergente: d.neurodivergente,
+        neurodivergenteOpcoes: d.neurodivergente_opcoes,
+        neurodivergenteOutro: d.neurodivergente_outro,
+        createdAt: d.created_at
+      } as Crianca));
+    } catch (e) { handleError(e, 'getCriancasByPhone'); return []; }
+  },
+
   getCriancas: async () => {
     try {
       const { data, error } = await supabase.from(TABLES.CRIANCAS).select('*').order('nome', { ascending: true });
@@ -72,7 +93,11 @@ export const storageService = {
         id: d.id, nome: d.nome, sobrenome: d.sobrenome, dataNascimento: d.data_nascimento,
         responsavelNome: d.responsavel_nome, whatsapp: d.whatsapp, 
         responsaveis: parseResponsaveis(d.responsavel_nome, d.whatsapp),
-        observacoes: d.observacoes, createdAt: d.created_at
+        observacoes: d.observacoes, 
+        neurodivergente: d.neurodivergente,
+        neurodivergenteOpcoes: d.neurodivergente_opcoes,
+        neurodivergenteOutro: d.neurodivergente_outro,
+        createdAt: d.created_at
       } as Crianca));
     } catch (e) { handleError(e, 'getCriancas'); return []; }
   },
@@ -89,14 +114,21 @@ export const storageService = {
 
       const { data, error } = await supabase.from(TABLES.CRIANCAS).insert([{
         nome: c.nome, sobrenome: c.sobrenome, data_nascimento: c.dataNascimento,
-        responsavel_nome: respNome, whatsapp: whats, observacoes: c.observacoes
+        responsavel_nome: respNome, whatsapp: whats, observacoes: c.observacoes,
+        neurodivergente: c.neurodivergente,
+        neurodivergente_opcoes: c.neurodivergenteOpcoes,
+        neurodivergente_outro: c.neurodivergenteOutro
       }]).select();
       if (error) throw error;
       return {
         id: data[0].id, nome: data[0].nome, sobrenome: data[0].sobrenome, dataNascimento: data[0].data_nascimento,
         responsavelNome: data[0].responsavel_nome, whatsapp: data[0].whatsapp, 
         responsaveis: parseResponsaveis(data[0].responsavel_nome, data[0].whatsapp),
-        observacoes: data[0].observacoes, createdAt: data[0].created_at
+        observacoes: data[0].observacoes, 
+        neurodivergente: data[0].neurodivergente,
+        neurodivergenteOpcoes: data[0].neurodivergente_opcoes,
+        neurodivergenteOutro: data[0].neurodivergente_outro,
+        createdAt: data[0].created_at
       } as Crianca;
     } catch (e) { handleError(e, 'addCrianca'); throw e; }
   },
@@ -118,6 +150,10 @@ export const storageService = {
       }
       
       if (c.observacoes !== undefined) payload.observacoes = c.observacoes;
+      if (c.neurodivergente !== undefined) payload.neurodivergente = c.neurodivergente;
+      if (c.neurodivergenteOpcoes !== undefined) payload.neurodivergente_opcoes = c.neurodivergenteOpcoes;
+      if (c.neurodivergenteOutro !== undefined) payload.neurodivergente_outro = c.neurodivergenteOutro;
+
       const { error } = await supabase.from(TABLES.CRIANCAS).update(payload).eq('id', id);
       if (error) throw error;
     } catch (e) { handleError(e, 'updateCrianca'); throw e; }
@@ -125,8 +161,10 @@ export const storageService = {
 
   deleteCrianca: async (id: string) => {
     try {
-      await supabase.from(TABLES.CHECKINS).delete().eq('id_crianca', id);
-      await supabase.from(TABLES.PRE_CHECKINS).delete().eq('id_crianca', id);
+      await Promise.all([
+        supabase.from(TABLES.CHECKINS).delete().eq('id_crianca', id),
+        supabase.from(TABLES.PRE_CHECKINS).delete().eq('id_crianca', id)
+      ]);
       const { error } = await supabase.from(TABLES.CRIANCAS).delete().eq('id', id);
       if (error) throw error;
     } catch (e) { handleError(e, 'deleteCrianca'); throw e; }

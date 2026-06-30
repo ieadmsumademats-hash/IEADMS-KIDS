@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="100" fill="#FFDFBF" />
+  <!-- Hair back -->
+  <path d="M 50 180 Q 30 130 50 80 Q 100 20 150 80 Q 170 130 150 180 Z" fill="#FDE047" />
+  <!-- Face/Skin -->
+  <circle cx="100" cy="110" r="45" fill="#FDBA74" />
+  <!-- Eyes -->
+  <circle cx="85" cy="105" r="5" fill="#4B5563" />
+  <circle cx="115" cy="105" r="5" fill="#4B5563" />
+  <!-- Smile -->
+  <path d="M 90 125 Q 100 135 110 125" stroke="#4B5563" stroke-width="4" stroke-linecap="round" fill="transparent" />
+  <!-- Hair bangs -->
+  <path d="M 55 90 Q 100 40 145 90 Q 100 60 55 90" fill="#FDE047" />
+  <!-- Rosy cheeks -->
+  <circle cx="75" cy="115" r="6" fill="#FCA5A5" opacity="0.6"/>
+  <circle cx="125" cy="115" r="6" fill="#FCA5A5" opacity="0.6"/>
+</svg>

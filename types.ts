@@ -13,6 +13,9 @@ export interface Crianca {
   sobrenome: string;
   dataNascimento: string;
   sexo?: 'M' | 'F';
+  neurodivergente?: boolean;
+  neurodivergenteOpcoes?: string[];
+  neurodivergenteOutro?: string;
   responsavelNome: string;
   whatsapp: string;
   responsaveis: Responsavel[];

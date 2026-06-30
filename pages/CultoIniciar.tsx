@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { CULTO_TYPES, ICONS } from '../constants';
 import { storageService } from '../services/storageService';
 import { CultoType } from '../types';
+import { globalProgress } from '../components/GlobalProgress';
 
 const CultoIniciar: React.FC = () => {
   const navigate = useNavigate();
@@ -15,12 +16,16 @@ const CultoIniciar: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
+    globalProgress.start('Iniciando Culto...');
     
     const active = await storageService.getActiveCulto();
     if (active) {
       alert('Já existe um culto ativo. Encerre-o antes de iniciar outro.');
       setIsSubmitting(false);
+      globalProgress.stop();
       return;
     }
 
@@ -38,7 +43,9 @@ const CultoIniciar: React.FC = () => {
       navigate(`/cultos/ativo/${docRef.id}`);
     } catch (error) {
       alert('Erro ao iniciar culto. Tente novamente.');
+    } finally {
       setIsSubmitting(false);
+      globalProgress.stop();
     }
   };
 

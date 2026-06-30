@@ -13,6 +13,7 @@ import Estatisticas from './pages/Estatisticas';
 import PaisArea from './pages/PaisArea';
 import PreCheckin from './pages/PreCheckin';
 import LoadingScreen from './components/LoadingScreen';
+import { GlobalProgressBar } from './components/GlobalProgress';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; isAdmin: boolean }> = ({ children, isAdmin }) => {
   if (!isAdmin) return <Navigate to="/login" replace />;
@@ -45,6 +46,7 @@ const App: React.FC = () => {
 
   return (
     <>
+      <GlobalProgressBar />
       {isInitialLoading && <LoadingScreen onComplete={() => setIsInitialLoading(false)} />}
       <Router>
         <Layout isAdmin={isAdmin} onLogout={handleLogout}>

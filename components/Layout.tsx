@@ -15,6 +15,8 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
   const navigate = useNavigate();
   const [activeCulto, setActiveCulto] = useState<Culto | null>(null);
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     const unsubscribe = storageService.subscribeToActiveCulto((culto) => {
       setActiveCulto(culto);
@@ -36,6 +38,8 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
     { label: 'Histórico', path: '/cultos', icon: ICONS.Calendar },
     { label: 'Estatísticas', path: '/estatisticas', icon: ICONS.BarChart },
   ];
+
+  const currentMenuLabel = menuItems.find(m => m.path === location.pathname)?.label || 'Menu';
 
   if (!isAdmin || location.pathname.startsWith('/pais') || location.pathname === '/login') {
     return <div className="min-h-screen bg-transparent font-sans print:min-h-0 print:bg-transparent">{children}</div>;
@@ -108,7 +112,7 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         </button>
       </aside>
 
-      <header className="print:hidden lg:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
+      <header className="print:hidden lg:hidden bg-purple-dark text-white p-3 flex items-center justify-between sticky top-0 z-40 shadow-xl">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
             <img 
@@ -122,38 +126,63 @@ const Layout: React.FC<LayoutProps> = ({ children, isAdmin, onLogout }) => {
         <button onClick={onLogout} className="text-white/60 p-1 scale-90">{ICONS.LogOut}</button>
       </header>
 
-      <main className="flex-1 p-4 md:p-6 pb-24 lg:pb-6 max-w-[1400px] mx-auto w-full print:p-0 print:m-0 print:max-w-none print:w-auto">
-        {children}
+      <main className="flex-1 pb-10 max-w-[1400px] mx-auto w-full print:p-0 print:m-0 print:max-w-none print:w-auto relative">
+        <div className="print:hidden lg:hidden p-4 pb-0 z-30">
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Abrir menu"
+            className="w-full bg-purple-main text-white font-black py-4 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 uppercase tracking-widest text-xs active:scale-95 transition-transform"
+          >
+            <span>{currentMenuLabel}</span>
+            <span className="opacity-80 scale-75">▼</span>
+          </button>
+        </div>
+
+        <div className="p-4 md:p-6 w-full">
+          {children}
+        </div>
       </main>
 
-      <div className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col">
-        {activeCulto && (
-          <div 
-            onClick={() => navigate(`/cultos/ativo/${activeCulto.id}`)}
-            className="bg-green-500 text-white text-center py-1.5 px-4 text-[10px] font-black uppercase tracking-widest shadow-md cursor-pointer flex items-center justify-center gap-2"
-          >
-            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            Culto ativo - {activeCulto.tipo === 'Outros' ? activeCulto.tipoManual : activeCulto.tipo}
+      {isMobileMenuOpen && (
+        <div className="print:hidden lg:hidden fixed inset-0 z-50 bg-purple-dark/95 backdrop-blur-sm flex flex-col p-4 overflow-y-auto">
+          <div className="flex justify-end mb-6">
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="bg-white/10 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold"
+            >
+              X
+            </button>
           </div>
-        )}
-        <nav className="bg-white border-t border-gray-100 flex justify-around py-2 px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex flex-col items-center gap-0.5 transition-colors ${
-                  isActive ? 'text-purple-main' : 'text-gray-400'
-                }`}
-              >
-                <div className="scale-75">{item.icon}</div>
-                <span className="text-[8px] font-black uppercase tracking-tight">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+          <div className="grid grid-cols-2 gap-4 auto-rows-fr">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex flex-col items-center justify-center gap-3 p-6 rounded-3xl transition-all shadow-lg ${
+                    isActive 
+                      ? 'bg-purple-main text-white border-2 border-yellow-main' 
+                      : 'bg-white text-purple-dark hover:bg-gray-100'
+                  }`}
+                >
+                  <div className={`scale-150 ${isActive ? 'text-yellow-main' : 'text-purple-main'}`}>
+                    {item.icon}
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-tight text-center">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {activeCulto && (
+        <div className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-green-500 text-white text-center py-1 text-[9px] font-black uppercase tracking-widest shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+          CULTO ATIVO
+        </div>
+      )}
     </div>
   );
 };

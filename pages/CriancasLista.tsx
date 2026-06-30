@@ -2,19 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { ICONS } from '../constants';
-import { normalizeString } from '../utils';
+import { normalizeString, formatPhone } from '../utils';
 import { Crianca, Responsavel } from '../types';
-
-const formatPhone = (value: string) => {
-  if (!value) return value;
-  const phoneNumber = value.replace(/[^\d]/g, '');
-  const phoneNumberLength = phoneNumber.length;
-  if (phoneNumberLength < 3) return phoneNumber;
-  if (phoneNumberLength < 7) {
-    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
-  }
-  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
-};
+import { globalProgress } from '../components/GlobalProgress';
+import { NeurodivergentBadge } from '../components/NeurodivergentBadge';
 
 const CriancasLista: React.FC = () => {
   const [kids, setKids] = useState<Crianca[]>([]);
@@ -23,6 +14,7 @@ const CriancasLista: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingKidId, setEditingKidId] = useState<string | null>(null);
   const [deletingKidId, setDeletingKidId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [selectedKids, setSelectedKids] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -35,6 +27,28 @@ const CriancasLista: React.FC = () => {
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([
     { nome: '', whatsapp: '', parentesco: 'Pai' }
   ]);
+  const [neurodivergente, setNeurodivergente] = useState<boolean | null>(null);
+  const [neurodivergenteOpcoes, setNeurodivergenteOpcoes] = useState<string[]>([]);
+  const [neurodivergenteOutro, setNeurodivergenteOutro] = useState('');
+
+  const handleNeuroChange = (isNeuro: boolean) => {
+    setNeurodivergente(isNeuro);
+    if (!isNeuro) {
+      setNeurodivergenteOpcoes([]);
+      setNeurodivergenteOutro('');
+    }
+  };
+
+  const toggleNeuroOpcao = (opcao: string) => {
+    setNeurodivergenteOpcoes(prev => {
+      const isSelected = prev.includes(opcao);
+      const newOptions = isSelected ? prev.filter(o => o !== opcao) : [...prev, opcao];
+      if (isSelected && opcao === 'Outro') {
+        setNeurodivergenteOutro('');
+      }
+      return newOptions;
+    });
+  };
 
   useEffect(() => {
     loadKids();
@@ -81,17 +95,27 @@ const CriancasLista: React.FC = () => {
       sexo: kid.sexo || 'F'
     });
     setResponsaveis(kid.responsaveis && kid.responsaveis.length > 0 ? kid.responsaveis : [{ nome: kid.responsavelNome, whatsapp: kid.whatsapp, parentesco: 'Outro' }]);
+    
+    setNeurodivergente(kid.neurodivergente === undefined ? null : kid.neurodivergente);
+    setNeurodivergenteOpcoes(kid.neurodivergenteOpcoes || []);
+    setNeurodivergenteOutro(kid.neurodivergenteOutro || '');
+
     setIsAdding(true);
   };
 
   const handleDelete = async () => {
-    if (!deletingKidId) return;
+    if (!deletingKidId || isProcessing) return;
+    setIsProcessing(true);
+    globalProgress.start('Excluindo...');
     try {
       await storageService.deleteCrianca(deletingKidId);
       await loadKids();
       setDeletingKidId(null);
     } catch (e) {
       alert("Erro ao excluir cadastro. Verifique se a criança possui histórico de check-ins.");
+    } finally {
+      setIsProcessing(false);
+      globalProgress.stop();
     }
   };
 
@@ -102,7 +126,9 @@ const CriancasLista: React.FC = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (selectedKids.length === 0) return;
+    if (selectedKids.length === 0 || isProcessing) return;
+    setIsProcessing(true);
+    globalProgress.start('Excluindo...');
     try {
       for (const id of selectedKids) {
         await storageService.deleteCrianca(id);
@@ -112,20 +138,66 @@ const CriancasLista: React.FC = () => {
       setShowBulkDeleteConfirm(false);
     } catch (e) {
       alert("Erro ao excluir cadastros. Tente novamente.");
+    } finally {
+      setIsProcessing(false);
+      globalProgress.stop();
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProcessing) return;
+
+    if (responsaveis.length === 0) {
+      alert("Por favor, adicione pelo menos um responsável.");
+      return;
+    }
+    for (const resp of responsaveis) {
+      if (!resp.nome.trim()) {
+        alert("O nome do responsável é obrigatório.");
+        return;
+      }
+      const digits = resp.whatsapp.replace(/\D/g, "");
+      if (digits.length < 10) {
+        alert("O telefone do responsável está incompleto ou vazio.");
+        return;
+      }
+    }
+
+    if (neurodivergente === true) {
+      if (neurodivergenteOpcoes.length === 0) {
+        alert("Por favor, selecione pelo menos uma opção de neurodivergência.");
+        return;
+      }
+      if (neurodivergenteOpcoes.includes('Outro') && !neurodivergenteOutro.trim()) {
+        alert("Por favor, informe qual a neurodivergência no campo 'Outro'.");
+        return;
+      }
+    }
+
+    setIsProcessing(true);
+    globalProgress.start('Salvando...');
     try {
+      const finalNeuroOpcoes = neurodivergente ? neurodivergenteOpcoes : [];
+      const finalNeuroOutro = neurodivergente && neurodivergenteOpcoes.includes('Outro') ? neurodivergenteOutro.trim() : '';
+
       if (editingKidId) {
-        await storageService.updateCrianca(editingKidId, { ...form, responsaveis });
+        await storageService.updateCrianca(editingKidId, { 
+          ...form, 
+          responsaveis,
+          neurodivergente: neurodivergente === true,
+          neurodivergenteOpcoes: finalNeuroOpcoes,
+          neurodivergenteOutro: finalNeuroOutro
+        });
       } else {
         const newKid: Omit<Crianca, 'id'> = {
           ...form,
           responsavelNome: '',
           whatsapp: '',
           responsaveis,
+          neurodivergente: neurodivergente === true,
+          neurodivergenteOpcoes: finalNeuroOpcoes,
+          neurodivergenteOutro: finalNeuroOutro,
           createdAt: new Date().toISOString()
         };
         await storageService.addCrianca(newKid);
@@ -134,6 +206,9 @@ const CriancasLista: React.FC = () => {
       closeModal();
     } catch (error) {
       alert("Erro ao salvar cadastro. Tente novamente.");
+    } finally {
+      setIsProcessing(false);
+      globalProgress.stop();
     }
   };
 
@@ -142,6 +217,9 @@ const CriancasLista: React.FC = () => {
     setEditingKidId(null);
     setForm({ nome: '', sobrenome: '', dataNascimento: '', observacoes: '', sexo: 'F' });
     setResponsaveis([{ nome: '', whatsapp: '', parentesco: 'Pai' }]);
+    setNeurodivergente(null);
+    setNeurodivergenteOpcoes([]);
+    setNeurodivergenteOutro('');
   };
 
   const filtered = kids.filter(k => 
@@ -221,25 +299,19 @@ const CriancasLista: React.FC = () => {
        ) : (
          <div className="flex flex-col gap-3">
             {filtered.map(kid => (
-              <div key={kid.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 flex items-center gap-3 sm:gap-4 hover:border-purple-main/30 hover:shadow-md transition-all">
+              <div key={kid.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 sm:p-3 flex items-center gap-3 hover:border-purple-main/30 hover:shadow-md transition-all">
                  <input 
                    type="checkbox" 
                    checked={selectedKids.includes(kid.id)} 
                    onChange={() => toggleSelectKid(kid.id)} 
-                   className="w-4 h-4 sm:w-5 sm:h-5 accent-purple-main cursor-pointer" 
+                   className="w-4 h-4 sm:w-5 sm:h-5 accent-purple-main cursor-pointer flex-shrink-0" 
                  />
-                 <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-200 flex-shrink-0">
-                   <img 
-                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${kid.nome}&backgroundColor=${kid.sexo === 'F' ? 'ffdfbf' : 'b6e3f4'}`} 
-                     alt={kid.nome} 
-                     className="w-full h-full object-cover"
-                   />
-                 </div>
                  <span 
-                   className="font-black text-purple-dark text-base sm:text-lg cursor-pointer hover:underline flex-1" 
+                   className="font-black text-purple-dark text-sm sm:text-base cursor-pointer hover:underline flex-1 flex items-center gap-2" 
                    onClick={() => handleEdit(kid)}
                  >
-                   {kid.nome} {kid.sobrenome}
+                   <span className="truncate">{kid.nome} {kid.sobrenome}</span>
+                   <NeurodivergentBadge neurodivergente={kid.neurodivergente} opcoes={kid.neurodivergenteOpcoes} />
                  </span>
               </div>
             ))}
@@ -248,8 +320,8 @@ const CriancasLista: React.FC = () => {
 
        {/* Modal Adicionar / Editar */}
        {isAdding && (
-         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-purple-dark/70 backdrop-blur-md">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in duration-300">
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-purple-dark/70 backdrop-blur-md">
+            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-6 md:p-10 shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in duration-300">
                <button 
                  type="button" 
                  onClick={closeModal} 
@@ -273,7 +345,7 @@ const CriancasLista: React.FC = () => {
                     >
                       <div className={`w-16 h-16 mb-2 rounded-full bg-white shadow-inner overflow-hidden border-2 transition-colors ${form.sexo === 'F' ? 'border-pink-400' : 'border-gray-200'}`}>
                         <img 
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${form.nome || 'Mia'}&backgroundColor=ffdfbf`}
+                          src="/avatar-menina.svg"
                           alt="Menina" 
                           className="w-full h-full object-cover"
                         />
@@ -292,7 +364,7 @@ const CriancasLista: React.FC = () => {
                     >
                       <div className={`w-16 h-16 mb-2 rounded-full bg-white shadow-inner overflow-hidden border-2 transition-colors ${form.sexo === 'M' ? 'border-blue-400' : 'border-gray-200'}`}>
                         <img 
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${form.nome || 'Felix'}&backgroundColor=b6e3f4`}
+                          src="/avatar-menino.svg"
                           alt="Menino" 
                           className="w-full h-full object-cover"
                         />
@@ -301,7 +373,7 @@ const CriancasLista: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-gray-400 px-1">Nome</label>
                       <input required placeholder="Ex: Lucas" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm border-2 border-transparent focus:border-purple-main outline-none" />
@@ -311,7 +383,7 @@ const CriancasLista: React.FC = () => {
                       <input required placeholder="Ex: Silva" value={form.sobrenome} onChange={e => setForm({...form, sobrenome: e.target.value})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm border-2 border-transparent focus:border-purple-main outline-none" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-gray-400 px-1">Nascimento</label>
                       <input required type="date" value={form.dataNascimento} onChange={e => setForm({...form, dataNascimento: e.target.value})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm border-2 border-transparent focus:border-purple-main outline-none" />
@@ -372,10 +444,72 @@ const CriancasLista: React.FC = () => {
                     <label className="text-[10px] font-black uppercase text-gray-400 px-1">Observações Médicas</label>
                     <textarea rows={2} placeholder="Alergias, restrições..." value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})} className="w-full bg-gray-light p-4 rounded-xl font-bold text-sm resize-none border-2 border-transparent focus:border-purple-main outline-none" />
                   </div>
-                  <div className="grid grid-cols-2 gap-6 pt-4">
+
+                  <div className="bg-gray-50 p-5 rounded-[2rem] border-2 border-gray-100 mt-4">
+                    <label className="block text-[10px] font-black text-purple-main uppercase tracking-widest mb-3 px-1">A criança é neurodivergente?</label>
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => handleNeuroChange(true)}
+                        className={`flex-1 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${neurodivergente === true ? 'bg-purple-main text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-purple-300'}`}
+                      >
+                        SIM
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleNeuroChange(false)}
+                        className={`flex-1 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${neurodivergente === false ? 'bg-purple-main text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-purple-300'}`}
+                      >
+                        NÃO
+                      </button>
+                    </div>
+
+                    {neurodivergente === true && (
+                      <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 mb-4">
+                          {['TEA', 'TDAH'].map(opcao => (
+                            <label key={opcao} className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border-2 border-gray-100 hover:border-purple-200 transition-colors justify-center md:justify-start">
+                              <input 
+                                type="checkbox" 
+                                checked={neurodivergenteOpcoes.includes(opcao)}
+                                onChange={() => toggleNeuroOpcao(opcao)}
+                                className="w-4 h-4 accent-purple-main"
+                              />
+                              <span className="font-bold text-sm text-gray-600">{opcao}</span>
+                            </label>
+                          ))}
+                          <label className="col-span-2 flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border-2 border-gray-100 hover:border-purple-200 transition-colors justify-center md:justify-start md:w-auto w-full">
+                            <input 
+                              type="checkbox" 
+                              checked={neurodivergenteOpcoes.includes('Outro')}
+                              onChange={() => toggleNeuroOpcao('Outro')}
+                              className="w-4 h-4 accent-purple-main"
+                            />
+                            <span className="font-bold text-sm text-gray-600">Outro</span>
+                          </label>
+                        </div>
+                        
+                        {neurodivergenteOpcoes.includes('Outro') && (
+                          <div className="animate-in fade-in zoom-in duration-200">
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Informe qual:</label>
+                            <input 
+                              required 
+                              type="text" 
+                              value={neurodivergenteOutro} 
+                              onChange={e => setNeurodivergenteOutro(e.target.value)} 
+                              className="w-full bg-white p-4 rounded-2xl font-bold border-2 border-gray-200 focus:border-purple-main transition-colors outline-none text-sm shadow-sm" 
+                              placeholder="Digite aqui..." 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                     <button type="button" onClick={closeModal} className="bg-gray-100 text-gray-500 font-black py-5 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors">CANCELAR</button>
-                    <button type="submit" className="bg-purple-main text-white font-black py-5 rounded-2xl shadow-xl text-xs uppercase tracking-widest hover:bg-purple-dark transition-colors">
-                      {editingKidId ? 'ATUALIZAR' : 'SALVAR CADASTRO'}
+                    <button type="submit" disabled={isProcessing} className="bg-purple-main text-white font-black py-5 rounded-2xl shadow-xl text-xs uppercase tracking-widest hover:bg-purple-dark transition-colors disabled:opacity-50">
+                      {isProcessing ? 'SALVANDO...' : (editingKidId ? 'ATUALIZAR' : 'SALVAR CADASTRO')}
                     </button>
                   </div>
                </form>
@@ -395,13 +529,15 @@ const CriancasLista: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     <button 
                         onClick={handleDelete}
-                        className="w-full bg-red-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-red-500/20 text-xs uppercase tracking-widest hover:bg-red-600 transition-colors"
+                        disabled={isProcessing}
+                        className="w-full bg-red-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-red-500/20 text-xs uppercase tracking-widest hover:bg-red-600 transition-colors disabled:opacity-50"
                     >
-                        SIM, EXCLUIR AGORA
+                        {isProcessing ? 'EXCLUINDO...' : 'SIM, EXCLUIR AGORA'}
                     </button>
                     <button 
                         onClick={() => setDeletingKidId(null)}
-                        className="w-full bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors"
+                        disabled={isProcessing}
+                        className="w-full bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
                     >
                         CANCELAR
                     </button>
@@ -422,13 +558,15 @@ const CriancasLista: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     <button 
                         onClick={handleBulkDelete}
-                        className="w-full bg-red-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-red-500/20 text-xs uppercase tracking-widest hover:bg-red-600 transition-colors"
+                        disabled={isProcessing}
+                        className="w-full bg-red-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-red-500/20 text-xs uppercase tracking-widest hover:bg-red-600 transition-colors disabled:opacity-50"
                     >
-                        SIM, EXCLUIR AGORA
+                        {isProcessing ? 'EXCLUINDO...' : 'SIM, EXCLUIR AGORA'}
                     </button>
                     <button 
                         onClick={() => setShowBulkDeleteConfirm(false)}
-                        className="w-full bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors"
+                        disabled={isProcessing}
+                        className="w-full bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
                     >
                         CANCELAR
                     </button>

@@ -5,6 +5,8 @@ import { ICONS } from '../constants';
 import { normalizeString } from '../utils';
 import { storageService } from '../services/storageService';
 import { Crianca, CheckIn, Culto, PreCheckIn, Responsavel } from '../types';
+import { globalProgress } from '../components/GlobalProgress';
+import { NeurodivergentBadge } from '../components/NeurodivergentBadge';
 
 const formatPhone = (value: string) => {
   if (!value) return value;
@@ -34,6 +36,7 @@ const CultoAtivo: React.FC = () => {
   const [isOtherGuardianCheckout, setIsOtherGuardianCheckout] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProcessingCode, setIsProcessingCode] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [timeoutExpired, setTimeoutExpired] = useState(false);
 
   // Estados para modal de check-in
@@ -55,6 +58,28 @@ const CultoAtivo: React.FC = () => {
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([
     { nome: '', whatsapp: '', parentesco: 'Pai' }
   ]);
+  const [neurodivergente, setNeurodivergente] = useState<boolean | null>(null);
+  const [neurodivergenteOpcoes, setNeurodivergenteOpcoes] = useState<string[]>([]);
+  const [neurodivergenteOutro, setNeurodivergenteOutro] = useState('');
+
+  const handleNeuroChange = (isNeuro: boolean) => {
+    setNeurodivergente(isNeuro);
+    if (!isNeuro) {
+      setNeurodivergenteOpcoes([]);
+      setNeurodivergenteOutro('');
+    }
+  };
+
+  const toggleNeuroOpcao = (opcao: string) => {
+    setNeurodivergenteOpcoes(prev => {
+      const isSelected = prev.includes(opcao);
+      const newOptions = isSelected ? prev.filter(o => o !== opcao) : [...prev, opcao];
+      if (isSelected && opcao === 'Outro') {
+        setNeurodivergenteOutro('');
+      }
+      return newOptions;
+    });
+  };
 
   const handleResponsavelChange = (index: number, field: keyof Responsavel, value: string) => {
     const newResponsaveis = [...responsaveis];
@@ -148,12 +173,15 @@ const CultoAtivo: React.FC = () => {
   };
 
   const confirmCheckin = async () => {
-    if (!pendingCheckinKid) return;
+    if (!pendingCheckinKid || isProcessing) return;
     const authorized = isOtherGuardianCheckin ? otherGuardianNameCheckin : checkinAuthorized;
     if (!authorized) {
       alert('Selecione ou informe quem poderá retirar a criança.');
       return;
     }
+
+    setIsProcessing(true);
+    globalProgress.start('Confirmando...');
 
     const newCheck: Omit<CheckIn, 'id'> = {
       idCrianca: pendingCheckinKid.id,
@@ -187,6 +215,9 @@ const CultoAtivo: React.FC = () => {
       } else {
         alert(e.message || "Erro ao realizar check-in.");
       }
+    } finally {
+      setIsProcessing(false);
+      globalProgress.stop();
     }
   };
 
@@ -197,17 +228,6 @@ const CultoAtivo: React.FC = () => {
     if (code === 'KIDS-') return;
 
     setIsProcessingCode(true);
-    setTimeoutExpired(false);
-
-    let kidInserted = false;
-    
-    const timeoutId = setTimeout(() => {
-        if (!kidInserted) {
-            console.warn(`[DEBUG PreCheckIn] TIMEOUT para o código: ${code}`);
-            setTimeoutExpired(true);
-            setIsProcessingCode(false);
-        }
-    }, 8000);
     
     console.group(`[DEBUG PreCheckIn] Processando código: ${code}`);
     try {
@@ -219,7 +239,6 @@ const CultoAtivo: React.FC = () => {
       });
       
       if (!pre) { 
-        clearTimeout(timeoutId);
         alert('Código não encontrado ou já confirmado.'); 
         setIsProcessingCode(false);
         console.groupEnd();
@@ -229,8 +248,6 @@ const CultoAtivo: React.FC = () => {
       const kid = allCriancas.find(k => k.id === pre.idCrianca);
       if (kid) {
         if (activeCheckins.some(c => c.idCrianca === kid.id)) {
-          kidInserted = true;
-          clearTimeout(timeoutId);
           await storageService.updatePreCheckin(pre.id, { status: 'confirmado' });
           setCodeQuery('KIDS-');
           setIsProcessingCode(false);
@@ -239,17 +256,13 @@ const CultoAtivo: React.FC = () => {
         }
 
         handleManualCheckin(kid, pre.id);
-        kidInserted = true;
-        clearTimeout(timeoutId);
         setIsProcessingCode(false);
         console.groupEnd();
         return;
       } else {
-        clearTimeout(timeoutId);
         setIsProcessingCode(false);
       }
     } catch (error) {
-      clearTimeout(timeoutId);
       setIsProcessingCode(false);
     }
     console.groupEnd();
@@ -257,12 +270,34 @@ const CultoAtivo: React.FC = () => {
 
   const handleSaveNewKid = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProcessing) return;
+
+    if (neurodivergente === true) {
+      if (neurodivergenteOpcoes.length === 0) {
+        alert("Por favor, selecione pelo menos uma opção de neurodivergência.");
+        return;
+      }
+      if (neurodivergenteOpcoes.includes('Outro') && !neurodivergenteOutro.trim()) {
+        alert("Por favor, informe qual a neurodivergência no campo 'Outro'.");
+        return;
+      }
+    }
+
+    setIsProcessing(true);
+    globalProgress.start('Salvando...');
+
     try {
+      const finalNeuroOpcoes = neurodivergente ? neurodivergenteOpcoes : [];
+      const finalNeuroOutro = neurodivergente && neurodivergenteOpcoes.includes('Outro') ? neurodivergenteOutro.trim() : '';
+
       const newKidData: Omit<Crianca, 'id'> = {
         ...regForm,
         responsavelNome: '',
         whatsapp: '',
         responsaveis,
+        neurodivergente: neurodivergente === true,
+        neurodivergenteOpcoes: finalNeuroOpcoes,
+        neurodivergenteOutro: finalNeuroOutro,
         createdAt: new Date().toISOString()
       };
       const createdKid = await storageService.addCrianca(newKidData);
@@ -270,17 +305,23 @@ const CultoAtivo: React.FC = () => {
       setAllCriancas(prev => [...prev, createdKid].sort((a,b) => a.nome.localeCompare(b.nome)));
     } catch (error) {
       alert("Erro ao salvar cadastro.");
+    } finally {
+      setIsProcessing(false);
+      globalProgress.stop();
     }
   };
 
   const handleConfirmCheckout = async () => {
-    if (!showCheckout) return;
+    if (!showCheckout || isProcessing) return;
     const retirou = isOtherGuardianCheckout ? checkoutName : checkoutName;
     if (!retirou) {
       alert('Selecione ou informe quem retirou a criança.');
       return;
     }
     
+    setIsProcessing(true);
+    globalProgress.start('Confirmando...');
+
     console.log("[DEBUG CHECKOUT] Iniciando processo para ID:", showCheckout.id);
     
     try {
@@ -297,6 +338,9 @@ const CultoAtivo: React.FC = () => {
     } catch (error: any) {
       console.error("[DEBUG CHECKOUT] Falha crítica no checkout:", error);
       alert(`Erro ao liberar criança: ${error.message || "Problema de conexão com o banco."}`);
+    } finally {
+      setIsProcessing(false);
+      globalProgress.stop();
     }
   };
 
@@ -307,6 +351,10 @@ const CultoAtivo: React.FC = () => {
         return; 
     }
     
+    if (isProcessing) return;
+    setIsProcessing(true);
+    globalProgress.start('Encerrando...');
+
     try {
       await storageService.clearPreCheckins(id!);
       await storageService.updateCulto(id!, { 
@@ -316,6 +364,9 @@ const CultoAtivo: React.FC = () => {
       navigate('/cultos');
     } catch (error) {
       alert("Erro ao finalizar sessão.");
+    } finally {
+      setIsProcessing(false);
+      globalProgress.stop();
     }
   };
 
@@ -399,14 +450,17 @@ const CultoAtivo: React.FC = () => {
                     <h2 className="text-[10px] font-black text-purple-dark uppercase flex items-center gap-2">
                         {ICONS.Search} Busca Manual
                     </h2>
-                    <button 
-                      onClick={() => {
-                        setRegForm({ nome: '', sobrenome: '', dataNascimento: '', observacoes: '' });
-                        setResponsaveis([{ nome: '', whatsapp: '', parentesco: 'Pai' }]);
-                        setRegistrationSuccess(null);
-                        setIsRegistering(true);
-                      }}
-                      className="text-[9px] font-black text-purple-main uppercase bg-purple-main/10 px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-purple-main hover:text-white transition-all"
+                      <button 
+                        onClick={() => {
+                          setRegForm({ nome: '', sobrenome: '', dataNascimento: '', observacoes: '' });
+                          setResponsaveis([{ nome: '', whatsapp: '', parentesco: 'Pai' }]);
+                          setNeurodivergente(null);
+                          setNeurodivergenteOpcoes([]);
+                          setNeurodivergenteOutro('');
+                          setRegistrationSuccess(null);
+                          setIsRegistering(true);
+                        }}
+                        className="text-[9px] font-black text-purple-main uppercase bg-purple-main/10 px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-purple-main hover:text-white transition-all"
                     >
                       {ICONS.Plus} Novo Cadastro
                     </button>
@@ -459,7 +513,12 @@ const CultoAtivo: React.FC = () => {
                         return (
                         <div key={check.id} className="bg-gray-light p-2.5 px-3 rounded-xl flex items-center justify-between border border-transparent hover:border-purple-main/10 transition-all">
                             <div className="flex-1 overflow-hidden pr-2">
-                                <h4 className="font-black text-purple-dark text-[11px] truncate">{kid?.nome} {kid?.sobrenome}</h4>
+                                <h4 className="font-black text-purple-dark text-[11px] truncate flex items-center gap-1">
+                                  {kid?.nome} {kid?.sobrenome}
+                                  {kid && (
+                                    <NeurodivergentBadge neurodivergente={kid.neurodivergente} opcoes={kid.neurodivergenteOpcoes} />
+                                  )}
+                                </h4>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[8px] font-bold text-gray-400 uppercase">Entrada: {check.horaEntrada}</span>
                                   {kid?.observacoes && <span className="bg-red-500 text-white text-[7px] font-black px-1 rounded uppercase">!</span>}
@@ -491,12 +550,12 @@ const CultoAtivo: React.FC = () => {
         </div>
 
         {pendingCheckinKid && (
-            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200">
-                <h2 className="text-sm font-black text-purple-dark mb-4 uppercase">Quem poderá retirar?</h2>
-                <p className="text-xs font-bold text-gray-500 mb-4">{pendingCheckinKid.nome} {pendingCheckinKid.sobrenome}</p>
+            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200 my-auto max-h-[90vh] flex flex-col">
+                <h2 className="text-sm font-black text-purple-dark mb-4 uppercase flex-shrink-0">Quem poderá retirar?</h2>
+                <p className="text-xs font-bold text-gray-500 mb-4 flex-shrink-0">{pendingCheckinKid.nome} {pendingCheckinKid.sobrenome}</p>
                 
-                <div className="space-y-2 mb-4 text-left">
+                <div className="space-y-2 mb-4 text-left overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
                   {pendingCheckinKid.responsaveis?.map((resp, idx) => (
                     <label key={idx} className="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-100 cursor-pointer hover:border-purple-main transition-colors">
                       <input 
@@ -530,19 +589,21 @@ const CultoAtivo: React.FC = () => {
                 </div>
 
                 {isOtherGuardianCheckin && (
-                  <input 
-                    type="text" 
-                    placeholder="Nome do responsável temporário..." 
-                    autoFocus 
-                    value={otherGuardianNameCheckin} 
-                    onChange={(e) => setOtherGuardianNameCheckin(e.target.value)} 
-                    className="w-full bg-gray-light p-3 rounded-xl font-bold mb-4 outline-none border border-transparent focus:border-purple-main text-xs" 
-                  />
+                  <div className="flex-shrink-0 mt-2">
+                    <input 
+                      type="text" 
+                      placeholder="Nome do responsável..." 
+                      autoFocus 
+                      value={otherGuardianNameCheckin} 
+                      onChange={(e) => setOtherGuardianNameCheckin(e.target.value)} 
+                      className="w-full bg-gray-light p-3 rounded-xl font-bold mb-4 outline-none border border-transparent focus:border-purple-main text-xs" 
+                    />
+                  </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 flex-shrink-0 mt-2">
                   <button onClick={() => { setPendingCheckinKid(null); setPendingPreCheckinId(null); }} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase">CANCELAR</button>
-                  <button onClick={confirmCheckin} disabled={isOtherGuardianCheckin ? !otherGuardianNameCheckin : !checkinAuthorized} className="bg-green-500 text-white font-black py-3 rounded-xl shadow-lg disabled:opacity-50 text-[10px] uppercase">CONFIRMAR</button>
+                  <button onClick={confirmCheckin} disabled={(isOtherGuardianCheckin ? !otherGuardianNameCheckin : !checkinAuthorized) || isProcessing} className="bg-green-500 text-white font-black py-3 rounded-xl shadow-lg disabled:opacity-50 text-[10px] uppercase">{isProcessing ? 'CONFIRMANDO...' : 'CONFIRMAR'}</button>
                 </div>
             </div>
             </div>
@@ -572,11 +633,11 @@ const CultoAtivo: React.FC = () => {
         )}
 
         {showCheckout && (
-            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200">
-                <h2 className="text-sm font-black text-purple-dark mb-4 uppercase">Quem retirou a criança?</h2>
+            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/60 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center animate-in zoom-in duration-200 my-auto max-h-[90vh] flex flex-col">
+                <h2 className="text-sm font-black text-purple-dark mb-4 uppercase flex-shrink-0">Quem retirou a criança?</h2>
                 
-                <div className="space-y-2 mb-4 text-left">
+                <div className="space-y-2 mb-4 text-left overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
                   {allCriancas.find(k => k.id === showCheckout.idCrianca)?.responsaveis?.map((resp, idx) => (
                     <label key={idx} className="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-100 cursor-pointer hover:border-purple-main transition-colors">
                       <input 
@@ -627,19 +688,21 @@ const CultoAtivo: React.FC = () => {
                 </div>
 
                 {isOtherGuardianCheckout && (
-                  <input 
-                    type="text" 
-                    placeholder="Nome de quem buscou..." 
-                    autoFocus 
-                    value={checkoutName} 
-                    onChange={(e) => setCheckoutName(e.target.value)} 
-                    className="w-full bg-gray-light p-3 rounded-xl font-bold mb-4 outline-none border border-transparent focus:border-purple-main text-xs" 
-                  />
+                  <div className="flex-shrink-0 mt-2">
+                    <input 
+                      type="text" 
+                      placeholder="Nome de quem buscou..." 
+                      autoFocus 
+                      value={checkoutName} 
+                      onChange={(e) => setCheckoutName(e.target.value)} 
+                      className="w-full bg-gray-light p-3 rounded-xl font-bold mb-4 outline-none border border-transparent focus:border-purple-main text-xs" 
+                    />
+                  </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 flex-shrink-0 mt-2">
                   <button onClick={() => { setShowCheckout(null); setCheckoutName(''); setIsOtherGuardianCheckout(false); }} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase">VOLTAR</button>
-                  <button onClick={handleConfirmCheckout} disabled={!checkoutName} className="bg-green-500 text-white font-black py-3 rounded-xl shadow-lg disabled:opacity-50 text-[10px] uppercase">CONFIRMAR</button>
+                  <button onClick={handleConfirmCheckout} disabled={!checkoutName || isProcessing} className="bg-green-500 text-white font-black py-3 rounded-xl shadow-lg disabled:opacity-50 text-[10px] uppercase">{isProcessing ? 'CONFIRMANDO...' : 'CONFIRMAR'}</button>
                 </div>
             </div>
             </div>
@@ -650,16 +713,16 @@ const CultoAtivo: React.FC = () => {
             <div className="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl text-center">
                 <h2 className="text-sm font-black text-red-600 mb-2 uppercase">Encerrar Sessão?</h2>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setShowEndConfirm(false)} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase">CANCELAR</button>
-                  <button onClick={handleEndCulto} className="bg-red-500 text-white font-black py-3 rounded-xl shadow-lg text-[10px] uppercase">ENCERRAR</button>
+                  <button onClick={() => setShowEndConfirm(false)} disabled={isProcessing} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase disabled:opacity-50">CANCELAR</button>
+                  <button onClick={handleEndCulto} disabled={isProcessing} className="bg-red-500 text-white font-black py-3 rounded-xl shadow-lg text-[10px] uppercase disabled:opacity-50">{isProcessing ? 'ENCERRANDO...' : 'ENCERRAR'}</button>
                 </div>
             </div>
             </div>
         )}
 
         {isRegistering && (
-          <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/80 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh] animate-in zoom-in duration-300">
+          <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/80 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-4 sm:p-8 shadow-2xl overflow-y-auto my-auto max-h-[90vh] animate-in zoom-in duration-300">
               {registrationSuccess ? (
                 <div className="text-center py-8">
                   <div className="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
@@ -772,9 +835,70 @@ const CultoAtivo: React.FC = () => {
                       <label className="text-[10px] font-black uppercase text-gray-400 px-1">Observações Médicas</label>
                       <textarea rows={2} placeholder="Alergias, restrições..." value={regForm.observacoes} onChange={e => setRegForm({...regForm, observacoes: e.target.value})} className="w-full bg-gray-light p-3.5 rounded-xl font-bold text-sm resize-none border-2 border-transparent focus:border-purple-main outline-none" />
                     </div>
+
+                    <div className="bg-gray-50 p-5 rounded-[2rem] border-2 border-gray-100 mt-4">
+                      <label className="block text-[10px] font-black text-purple-main uppercase tracking-widest mb-3 px-1">A criança é neurodivergente?</label>
+                      <div className="flex gap-4">
+                        <button
+                          type="button"
+                          onClick={() => handleNeuroChange(true)}
+                          className={`flex-1 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${neurodivergente === true ? 'bg-purple-main text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-purple-300'}`}
+                        >
+                          SIM
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleNeuroChange(false)}
+                          className={`flex-1 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all ${neurodivergente === false ? 'bg-purple-main text-white shadow-md' : 'bg-white border-2 border-gray-200 text-gray-400 hover:border-purple-300'}`}
+                        >
+                          NÃO
+                        </button>
+                      </div>
+
+                      {neurodivergente === true && (
+                        <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 mb-4">
+                            {['TEA', 'TDAH'].map(opcao => (
+                              <label key={opcao} className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border-2 border-gray-100 hover:border-purple-200 transition-colors justify-center md:justify-start">
+                                <input 
+                                  type="checkbox" 
+                                  checked={neurodivergenteOpcoes.includes(opcao)}
+                                  onChange={() => toggleNeuroOpcao(opcao)}
+                                  className="w-4 h-4 accent-purple-main"
+                                />
+                                <span className="font-bold text-sm text-gray-600">{opcao}</span>
+                              </label>
+                            ))}
+                            <label className="col-span-2 flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border-2 border-gray-100 hover:border-purple-200 transition-colors justify-center md:justify-start md:w-auto w-full">
+                              <input 
+                                type="checkbox" 
+                                checked={neurodivergenteOpcoes.includes('Outro')}
+                                onChange={() => toggleNeuroOpcao('Outro')}
+                                className="w-4 h-4 accent-purple-main"
+                              />
+                              <span className="font-bold text-sm text-gray-600">Outro</span>
+                            </label>
+                          </div>
+                          
+                          {neurodivergenteOpcoes.includes('Outro') && (
+                            <div className="animate-in fade-in zoom-in duration-200">
+                              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Informe qual:</label>
+                              <input 
+                                required 
+                                type="text" 
+                                value={neurodivergenteOutro} 
+                                onChange={e => setNeurodivergenteOutro(e.target.value)} 
+                                className="w-full bg-white p-4 rounded-2xl font-bold border-2 border-gray-200 focus:border-purple-main transition-colors outline-none text-sm shadow-sm" 
+                                placeholder="Digite aqui..." 
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     
-                    <button type="submit" className="w-full bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase tracking-widest hover:bg-purple-dark transition-colors mt-4">
-                      SALVAR CADASTRO
+                    <button type="submit" disabled={isProcessing} className="w-full bg-purple-main text-white font-black py-4 rounded-2xl shadow-xl text-xs uppercase tracking-widest hover:bg-purple-dark transition-colors mt-4 disabled:opacity-50">
+                      {isProcessing ? 'SALVANDO...' : 'SALVAR CADASTRO'}
                     </button>
                   </form>
                 </>
