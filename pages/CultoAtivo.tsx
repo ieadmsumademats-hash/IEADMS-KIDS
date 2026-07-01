@@ -49,6 +49,10 @@ const CultoAtivo: React.FC = () => {
   // Estado para sucesso do check-in
   const [checkinSuccessData, setCheckinSuccessData] = useState<{ kid: Crianca, checkin: CheckIn } | null>(null);
 
+  // Estados para o resumo do culto
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [summaryData, setSummaryData] = useState<{ nome: string, duration: string, count: number } | null>(null);
+
   // Estados para novo cadastro dentro do culto
   const [isRegistering, setIsRegistering] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState<Crianca | null>(null);
@@ -358,12 +362,50 @@ const CultoAtivo: React.FC = () => {
     globalProgress.start('Encerrando...');
 
     try {
+      const horaFim = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       await storageService.clearPreCheckins(id!);
       await storageService.updateCulto(id!, { 
         status: 'encerrado', 
-        horaFim: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) 
+        horaFim 
       });
-      navigate('/cultos');
+      
+      // Calculate duration
+      let durationStr = 'Duração não disponível';
+      if (culto && culto.data && culto.horaInicio) {
+        try {
+          const startTime = new Date(`${culto.data}T${culto.horaInicio}:00`);
+          const endTime = new Date(`${culto.data}T${horaFim}:00`);
+          if (endTime < startTime) {
+            endTime.setDate(endTime.getDate() + 1); // Crossed midnight
+          }
+          const diffMs = endTime.getTime() - startTime.getTime();
+          if (!isNaN(diffMs)) {
+            const diffMinutes = Math.floor(diffMs / 60000);
+            const hours = Math.floor(diffMinutes / 60);
+            const minutes = diffMinutes % 60;
+            
+            let dStr = '';
+            if (hours > 0) dStr += `${hours}h `;
+            if (minutes > 0 || hours === 0) dStr += `${minutes}min`;
+            durationStr = dStr.trim();
+          }
+        } catch (e) {
+          console.error("Erro ao calcular duração", e);
+        }
+      }
+
+      // Count unique checkins
+      const uniqueKidsCount = new Set(checkins.map(c => c.idCrianca)).size;
+
+      setSummaryData({
+        nome: culto?.tipo === 'Outros' ? (culto.tipoManual || 'Culto') : (culto?.tipo || 'Culto'),
+        duration: durationStr,
+        count: uniqueKidsCount
+      });
+      
+      setShowEndConfirm(false);
+      setShowSummaryModal(true);
+
     } catch (error) {
       alert("Erro ao finalizar sessão.");
     } finally {
@@ -718,6 +760,42 @@ const CultoAtivo: React.FC = () => {
                   <button onClick={() => setShowEndConfirm(false)} disabled={isProcessing} className="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[10px] uppercase disabled:opacity-50">CANCELAR</button>
                   <button onClick={handleEndCulto} disabled={isProcessing} className="bg-red-500 text-white font-black py-3 rounded-xl shadow-lg text-[10px] uppercase disabled:opacity-50">{isProcessing ? 'ENCERRANDO...' : 'ENCERRAR'}</button>
                 </div>
+            </div>
+            </div>
+        )}
+
+        {showSummaryModal && summaryData && (
+            <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-purple-dark/80 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-center animate-in zoom-in duration-300">
+                <div className="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
+                  {ICONS.CheckCircle}
+                </div>
+                <h2 className="kids-font text-3xl font-black text-purple-dark mb-8 uppercase tracking-tight">Culto Finalizado</h2>
+                
+                <div className="space-y-4 mb-8 text-left">
+                  <div className="bg-gray-50 p-4 rounded-2xl border-2 border-gray-100 flex justify-between items-center">
+                    <span className="text-xs font-black uppercase text-gray-500">Nome do culto:</span>
+                    <span className="text-sm font-black text-purple-dark truncate max-w-[60%]">{summaryData.nome}</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-2xl border-2 border-gray-100 flex justify-between items-center">
+                    <span className="text-xs font-black uppercase text-gray-500">Tempo de duração:</span>
+                    <span className="text-sm font-black text-purple-dark">{summaryData.duration}</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-2xl border-2 border-gray-100 flex justify-between items-center">
+                    <span className="text-xs font-black uppercase text-gray-500">Crianças que fizeram check-in:</span>
+                    <span className="text-xl font-black text-purple-main">{summaryData.count}</span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    setShowSummaryModal(false);
+                    navigate('/cultos');
+                  }} 
+                  className="w-full bg-purple-main text-white font-black py-5 rounded-[2rem] shadow-xl text-sm uppercase tracking-widest hover:bg-purple-dark transition-all"
+                >
+                  FECHAR
+                </button>
             </div>
             </div>
         )}
